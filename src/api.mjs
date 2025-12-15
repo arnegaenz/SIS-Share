@@ -108,6 +108,26 @@ export async function getCardPlacementPage(
 // -------------------------
 // GET MERCHANT SITES (one page)
 // -------------------------
+// -------------------------
+// GET FINANCIAL INSTITUTIONS (one page)
+// -------------------------
+export async function getFinancialInstitutionsPage(session, pagingHeader = {}) {
+  const safePagingHeader =
+    pagingHeader && typeof pagingHeader === "object" ? pagingHeader : {};
+  const resp = await session.get("financial_institutions", {}, safePagingHeader);
+
+  // Normalize response
+  const rows = Array.isArray(resp?.body)
+    ? resp.body
+    : Array.isArray(resp?.financial_institutions)
+    ? resp.financial_institutions
+    : Array.isArray(resp)
+    ? resp
+    : [];
+
+  return { rows, raw: resp };
+}
+
 export async function getMerchantSitesPage(session, pagingHeader = {}) {
   const safePagingHeader =
     pagingHeader && typeof pagingHeader === "object" ? pagingHeader : {};

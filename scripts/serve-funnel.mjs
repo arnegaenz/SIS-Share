@@ -11,6 +11,7 @@ import {
   getCardPlacementPage,
   getMerchantSitesPage,
   getSessionsPage,
+  getFinancialInstitutionsPage,
   loginWithSdk,
 } from "../src/api.mjs";
 import {
@@ -20,6 +21,7 @@ import {
   buildMerchantSeries,
 } from "../src/lib/analytics/sources.mjs";
 import { fetchGaRowsForDay } from "../src/ga.mjs";
+import { loadInstances } from "../src/utils/config.mjs";
 const { URLSearchParams } = url;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2209,6 +2211,117 @@ const server = http.createServer(async (req, res) => {
       return send(res, status, { error: err.message || "Unable to delete registry entry" });
     }
   }
+
+  // New endpoint: Reload FI registry from instances
+  if (pathname === "/fi-registry/reload-from-instances" && req.method === "POST") {
+    try {
+      const instances = await loadInstances();
+      if (!instances || !instances.length) {
+        return send(res, 400, { error: "No instances configured" });
+      }
+
+      // Read existing registry
+      let registry = {};
+      try {
+        const raw = await fs.readFile(FI_REGISTRY_FILE, "utf8");
+        registry = JSON.parse(raw || "{}");
+      } catch (err) {
+        if (err.code !== "ENOENT") throw err;
+      }
+
+      const makeKey = (fi, inst) => {
+        const normFi = (fi || "").toString().trim().toLowerCase();
+        const normInst = (inst || "unknown").toString().trim().toLowerCase() || "unknown";
+        return `${normFi}__${normInst}`;
+      };
+
+      const existingKeys = new Set(Object.keys(registry).map(k => k.toLowerCase()));
+      let newCount = 0;
+      const errors = [];
+
+      // Fetch FIs from each instance
+      for (const instance of instances) {
+        try {
+          console.log(`Fetching FIs from instance: ${instance.name}`);
+          const { session } = await loginWithSdk(instance);
+
+          // Fetch all pages of FIs
+          let allFis = [];
+          let pagingHeader = {};
+          let hasMore = true;
+
+          while (hasMore) {
+            const result = await getFinancialInstitutionsPage(session, pagingHeader);
+            const fis = result.rows || [];
+            allFis = allFis.concat(fis);
+
+            // Check if there are more pages
+            if (result.raw && result.raw.headers && result.raw.headers["x-cardsavr-paging"]) {
+              const pagingJson = JSON.parse(result.raw.headers["x-cardsavr-paging"]);
+              hasMore = pagingJson.is_last_page === false;
+              if (hasMore) {
+                pagingHeader = { "x-cardsavr-paging": JSON.stringify({ page: (pagingJson.page || 0) + 1 }) };
+              }
+            } else {
+              hasMore = false;
+            }
+          }
+
+          console.log(`Found ${allFis.length} FIs in instance ${instance.name}`);
+
+          // Add new FIs to registry
+          for (const fi of allFis) {
+            const fiName = fi.name || fi.lookup_key || "Unknown";
+            const fiLookupKey = fi.lookup_key || fi.name || "";
+            if (!fiLookupKey) continue;
+
+            const key = makeKey(fiLookupKey, instance.name);
+
+            // Skip if already exists
+            if (existingKeys.has(key)) continue;
+
+            // Determine integration type (guess based on instance name or FI metadata)
+            const guessedIntegration = /dev|test/i.test(instance.name) ? "TEST" : "NON-SSO";
+
+            registry[key] = {
+              fi_name: fiName,
+              fi_lookup_key: fiLookupKey.toLowerCase(),
+              instance: instance.name,
+              integration_type: guessedIntegration,
+              partner: "Unknown",
+              sources: ["api"],
+              first_seen: new Date().toISOString().slice(0, 10),
+            };
+
+            existingKeys.add(key);
+            newCount++;
+          }
+        } catch (err) {
+          console.error(`Error fetching FIs from ${instance.name}:`, err);
+          errors.push({ instance: instance.name, error: err.message });
+        }
+      }
+
+      // Save updated registry
+      await fs.writeFile(
+        FI_REGISTRY_FILE,
+        JSON.stringify(registry, null, 2) + "\n",
+        "utf8"
+      );
+
+      return send(res, 200, {
+        success: true,
+        newCount,
+        totalCount: Object.keys(registry).length,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (err) {
+      console.error("Error reloading registry from instances:", err);
+      const status = err?.status || 500;
+      return send(res, status, { error: err.message || "Unable to reload registry from instances" });
+    }
+  }
+
   if (pathname === "/troubleshoot/options") {
     try {
       const opts = await buildTroubleshootOptions();

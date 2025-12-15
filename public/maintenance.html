@@ -1708,8 +1708,53 @@
         }
       }
       async function reloadRegistryFromData() {
-        if (!window.confirm("Reload registry from data? New FI + instance combos will be added; existing entries are untouched.")) return;
-        setStatus("Scanning data for new FI + instance combos…");
+        // Ask user which method they want to use
+        const choice = window.confirm(
+          "Reload registry from CardSavr instances?\n\n" +
+          "Click OK to fetch FIs from your configured instances.\n" +
+          "Click Cancel to scan existing daily data files instead."
+        );
+
+        if (choice) {
+          // Reload from instances
+          await reloadRegistryFromInstances();
+        } else {
+          // Reload from daily data files
+          await reloadRegistryFromDailyData();
+        }
+      }
+
+      async function reloadRegistryFromInstances() {
+        setStatus("Fetching FIs from CardSavr instances…");
+        tableBody.innerHTML = "<tr><td colspan='7'>Fetching from instances…</td></tr>";
+        try {
+          const res = await fetch("/fi-registry/reload-from-instances", { method: "POST" });
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          if (data.newCount === 0) {
+            setStatus("No new FIs found. All FIs from instances are already in the registry.", "success");
+          } else {
+            setStatus(
+              `Added ${data.newCount} new FI${data.newCount !== 1 ? 's' : ''} from instances. ` +
+              `Total registry size: ${data.totalCount}`,
+              "success"
+            );
+          }
+          if (data.errors && data.errors.length > 0) {
+            console.warn("Errors fetching from some instances:", data.errors);
+          }
+          await loadRegistry();
+        } catch (err) {
+          console.error("reload from instances failed", err);
+          setStatus(err?.message || "Failed to reload registry from instances.", "error");
+        }
+      }
+
+      async function reloadRegistryFromDailyData() {
+        setStatus("Scanning daily data files for new FI + instance combos…");
         tableBody.innerHTML = "<tr><td colspan='7'>Scanning…</td></tr>";
         try {
           const normalizeFiKey = (val) =>
