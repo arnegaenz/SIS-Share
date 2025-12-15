@@ -193,6 +193,20 @@ To manually refresh data:
 3. Click "Refresh Data"
 4. Monitor the progress in the status log
 
+### Reloading FI Registry
+
+To populate the registry with FIs from your instances:
+
+1. Go to Maintenance page → FI Registry Editor section
+2. Click "Reload Registry"
+3. Choose reload method:
+   - **From Instances** (Recommended for new setups): Fetches all FIs directly from your configured CardSavr instances
+   - **From Daily Data**: Scans existing daily rollup files for FI references
+4. The system will add new FI entries without overwriting existing ones
+5. Check the status message to see how many FIs were added
+
+**Note**: "From Instances" is the best option when you've just added instance credentials and haven't fetched any data yet.
+
 ### Editing FI Registry
 
 1. Go to Maintenance page → FI Registry Editor section
