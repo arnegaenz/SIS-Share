@@ -251,15 +251,35 @@ async function collectPlacementsForDay(date, instances, cache, options = {}) {
 }
 
 async function fetchGaRaw(date) {
+  const fs = await import("node:fs");
+
   const configs = [
     { propertyId: DEFAULT_GA_PROPERTY, keyFile: DEFAULT_GA_KEYFILE, isTest: false },
   ];
   if (TEST_GA_PROPERTY) {
     configs.push({ propertyId: TEST_GA_PROPERTY, keyFile: TEST_GA_KEYFILE, isTest: true });
   }
+
+  // Filter out configs where the keyFile doesn't exist
+  const validConfigs = configs.filter(cfg => {
+    const keyFilePath = path.resolve(cfg.keyFile);
+    const exists = fs.existsSync(keyFilePath);
+    if (!exists) {
+      const label = cfg.isTest ? "GA (test)" : "GA (prod)";
+      console.log(`[${date}] ${label}: skipped (credential file not found: ${cfg.keyFile})`);
+    }
+    return exists;
+  });
+
+  // If no valid GA configs, return empty result
+  if (validConfigs.length === 0) {
+    console.log(`[${date}] GA: skipped (no credential files found)`);
+    return { date, rows: [], count: 0, requests: [], skipped: true };
+  }
+
   const allRows = [];
   const requests = [];
-  for (const cfg of configs) {
+  for (const cfg of validConfigs) {
     const request = gaRequestForDate(date, cfg);
     const rows = await fetchGaRowsForDay({
       date: request.date,
@@ -371,7 +391,11 @@ export async function fetchRawRange({
       try {
         const payload = await fetchGaRaw(date);
         writeRawWithMetadata("ga", date, payload);
-        logWrite(date, "GA", `fetched ${payload.rows.length} rows`, onStatus);
+        if (payload.skipped) {
+          logWrite(date, "GA", `skipped (no credentials)`, onStatus);
+        } else {
+          logWrite(date, "GA", `fetched ${payload.rows.length} rows`, onStatus);
+        }
       } catch (err) {
         const warnMsg = `[${date}] GA error: ${err.message || err}`;
         if (onStatus) onStatus(warnMsg);
