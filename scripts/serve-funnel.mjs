@@ -2215,7 +2215,7 @@ const server = http.createServer(async (req, res) => {
   // New endpoint: Reload FI registry from instances
   if (pathname === "/fi-registry/reload-from-instances" && req.method === "POST") {
     try {
-      const instances = await loadInstances();
+      const instances = await loadInstances(ROOT);
       if (!instances || !instances.length) {
         return send(res, 400, { error: "No instances configured" });
       }
