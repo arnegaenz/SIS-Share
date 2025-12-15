@@ -141,7 +141,7 @@ The FI registry (`fi_registry.json`) contains metadata about Financial Instituti
 - Cardholder counts (for reach percentage calculations)
 - Instance associations
 
-The registry auto-populates based on data from your CardSavr instances and can be edited through the Maintenance page.
+**The registry starts empty and auto-populates** based on data from your CardSavr instances as you fetch session and placement data. You can then edit entries through the Maintenance page to add cardholder counts, set integration types, and assign partners.
 
 ### Data Storage
 
