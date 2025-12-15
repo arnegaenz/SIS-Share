@@ -1,0 +1,20 @@
+{
+  "name": "sis-share",
+  "version": "1.0.0",
+  "description": "Shareable FI-Funnel Analytics Dashboard for CardSavr Partners",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve-funnel.mjs",
+    "fetch": "node scripts/fetch-raw.mjs",
+    "build": "node scripts/build-daily-from-raw.mjs"
+  },
+  "keywords": ["analytics", "dashboard", "cardsavr", "funnel", "metrics"],
+  "author": "Strivve",
+  "license": "ISC",
+  "dependencies": {
+    "@google-analytics/data": "^5.2.1",
+    "@strivve/strivve-sdk": "^3.6.1",
+    "dotenv": "^17.2.3",
+    "googleapis": "^165.0.0"
+  }
+}

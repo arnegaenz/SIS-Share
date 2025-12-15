@@ -1,0 +1,9 @@
+node_modules/
+secrets/
+data/
+raw/
+.env
+.DS_Store
+*.log
+.vscode/
+.idea/

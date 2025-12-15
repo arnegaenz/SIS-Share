@@ -1,0 +1,3001 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SIS Maintenance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./sis-shared.css?v=navfix" />
+  <link rel="stylesheet" href="./assets/css/sis.css">
+  <script defer src="./assets/js/sis.js"></script>
+  <script defer src="./assets/js/nav.js"></script>
+  <script defer src="./assets/js/filters.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (window.renderHeaderNav && !window.__sisHeaderNav_maintenance) {
+        window.__sisHeaderNav_maintenance = true;
+        window.renderHeaderNav({
+          currentId: "maintenance",
+          title: "Maintenance",
+          subtitle: "Data refresh, FI registry edits, and credential management."
+        });
+      }
+    });
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--panel-title);
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      --sis-panel-bg: var(--panel-bg);
+      margin: 0;
+      padding: 0;
+    }
+    .maintenance-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-top: 24px;
+      width: 100%;
+    }
+    .maint-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 320px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+    
+    .maint-card p.description {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .refresh-status {
+      background: var(--log-bg);
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      padding: 12px;
+      min-height: 120px;
+      font-size: 13px;
+      color: var(--panel-title);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    .refresh-status p {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .refresh-log {
+      margin: 0;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .refresh-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .refresh-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+      flex: 0 0 200px;
+      max-width: 200px;
+    }
+    .refresh-controls input {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .refresh-controls select {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .refresh-controls .checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      text-transform: none;
+      color: var(--muted);
+      height: 40px;
+      padding: 0;
+      flex: 0 0 190px;
+      min-width: 190px;
+      white-space: nowrap;
+    }
+    .refresh-controls .checkbox input {
+      width: auto;
+      min-width: 0;
+      height: 16px;
+    }
+    .refresh-controls .btn {
+      height: 40px;
+      padding: 0 18px;
+      margin-left: 4px;
+    }
+    .refresh-button-wrap {
+      display: flex;
+      align-items: flex-end;
+      padding-top: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      text-decoration: none;
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #f8fafc;
+      border-radius: 999px;
+      padding: 10px 28px;
+      min-width: 170px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      border: none;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      transition: transform 0.15s ease, filter 0.15s ease;
+      cursor: pointer;
+      appearance: none;
+    }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn.danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn.secondary.danger {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+    .maint-card button,
+    .maint-card .btn {
+      align-self: flex-start;
+    }
+    .merchant-sites-card {
+      grid-column: 1 / -1;
+    }
+    .merchant-sites-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      overflow: hidden;
+      max-height: 420px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+    }
+    .merchant-sites-card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 640px;
+    }
+    .merchant-sites-card thead {
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .merchant-sites-card th,
+    .merchant-sites-card td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .merchant-sites-card th:nth-child(1),
+    .merchant-sites-card td:nth-child(1) { width: 28%; }
+    .merchant-sites-card th:nth-child(2),
+    .merchant-sites-card td:nth-child(2) { width: 26%; }
+    .merchant-sites-card th:nth-child(3),
+    .merchant-sites-card td:nth-child(3) { width: 14%; }
+    .merchant-sites-card th:nth-child(4),
+    .merchant-sites-card td:nth-child(4) { width: 22%; }
+    .merchant-sites-card th:nth-child(5),
+    .merchant-sites-card td:nth-child(5) { width: 10%; }
+    .merchant-sites-card th {
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--panel-title);
+      font-weight: 700;
+      backdrop-filter: blur(2px);
+      cursor: pointer;
+    }
+    .merchant-sites-card tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 360px;
+    }
+    .merchant-sites-card thead,
+    .merchant-sites-card tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .merchant-sites-card tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      border: 1px solid transparent;
+      background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.2));
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      cursor: default; /* keep arrow cursor across the whole badge */
+    }
+    .status-pill.up {
+      color: #0f5132;
+      border-color: rgba(34, 197, 94, 0.35);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.04));
+    }
+    .status-pill.down {
+      color: #7f1d1d;
+      border-color: rgba(220, 38, 38, 0.35);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(248, 113, 113, 0.06));
+    }
+    .status-pill.limited {
+      color: #854d0e;
+      border-color: rgba(234, 179, 8, 0.35);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.06));
+    }
+    .status-pill.unknown {
+      color: #334155;
+      border-color: rgba(100, 116, 139, 0.35);
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.06));
+    }
+    .tag-filter {
+      position: relative;
+    }
+    .th-inner {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .th-sort-controls {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+    }
+    .sort-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+    }
+    .sort-segment {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 2px 8px;
+      cursor: pointer;
+      font-weight: 700;
+      min-width: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .sort-segment + .sort-segment {
+      border-left: 1px solid var(--panel-border);
+    }
+    .sort-segment.active {
+      background: rgba(37, 99, 235, 0.14);
+      color: var(--accent);
+    }
+    .sort-segment:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .tag-filter-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+      max-height: 260px;
+      overflow: auto;
+      min-width: 220px;
+      z-index: 5;
+    }
+    .tag-filter-menu label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--panel-title);
+      padding: 4px 0;
+      cursor: pointer;
+    }
+    .tag-filter-menu input {
+      width: 16px;
+      height: 16px;
+    }
+    .registry-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .registry-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .registry-controls input,
+    .registry-controls select {
+      width: 100%;
+      min-width: 170px;
+      max-width: 220px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+      height: 40px;
+      line-height: 22px;
+    }
+    .registry-controls .btn {
+      height: 40px;
+      padding: 0 20px;
+      align-self: flex-end;
+    }
+    .registry-body {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.2fr) minmax(280px, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .registry-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+      max-height: 520px;
+      display: flex;
+      flex-direction: column;
+    }
+    .registry-table-wrapper table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .registry-table-wrapper thead {
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .registry-table-wrapper th,
+    .registry-table-wrapper td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--panel-border);
+      text-align: left;
+    }
+    .registry-table-wrapper th.sortable {
+      cursor: pointer;
+    }
+    .registry-table-wrapper th .sort-indicator {
+      margin-left: 6px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .registry-table-wrapper th.sortable.sorted .sort-indicator {
+      color: var(--brand);
+    }
+    .registry-table-wrapper tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 460px;
+    }
+    .registry-table-wrapper thead,
+    .registry-table-wrapper tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .registry-table-wrapper tbody tr.selected {
+      background: rgba(37, 99, 235, 0.14);
+    }
+    .registry-table-wrapper tbody tr:hover {
+      background: rgba(37, 99, 235, 0.1);
+      cursor: pointer;
+    }
+    .registry-editor {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .registry-editor fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .registry-editor label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .registry-editor input,
+    .registry-editor select {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .editor-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .editor-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .refresh-card {
+      grid-column: 1 / -1;
+    }
+    .instances-body {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .instances-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .instances-controls label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .instances-controls input {
+      min-width: 200px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .instances-controls input[type="file"] {
+      padding: 7px 10px;
+      height: 40px;
+    }
+    .ga-service-card .instances-controls {
+      align-items: flex-end;
+    }
+    .ga-service-card .instances-controls label {
+      min-width: 240px;
+      flex: 0 1 280px;
+      max-width: 100%;
+    }
+    .ga-service-card .instances-controls select,
+    .ga-service-card .instances-controls input[type="file"] {
+      height: 40px;
+    }
+    .ga-service-card .instances-controls select {
+      min-width: 240px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .ga-service-card .instances-controls label:nth-of-type(2) {
+      flex: 1 1 360px;
+      min-width: 280px;
+    }
+    .ga-service-card .instances-controls input[type="file"] {
+      min-width: 0;
+      width: 100%;
+      max-width: 520px;
+    }
+    .ga-service-card .instance-actions {
+      flex: 0 0 auto;
+      justify-content: flex-start;
+      gap: 10px;
+    }
+    .ga-json-editor {
+      width: 100%;
+      min-height: 240px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 12px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      resize: vertical;
+      white-space: pre;
+      tab-size: 2;
+    }
+    .ga-json-editor:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .ga-service-card .refresh-status {
+      border-radius: 12px;
+    }
+    .instances-controls .instance-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .instances-table-wrapper {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      overflow: hidden;
+      max-height: 520px;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+    }
+    .instances-table-wrapper table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .instances-table-wrapper thead {
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .instances-table-wrapper th,
+    .instances-table-wrapper td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--panel-border);
+      text-align: left;
+    }
+    .instances-table-wrapper tbody {
+      display: block;
+      overflow-y: auto;
+      max-height: 460px;
+    }
+    .instances-table-wrapper thead,
+    .instances-table-wrapper tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+    .instances-table-wrapper tbody tr.selected {
+      background: rgba(37, 99, 235, 0.14);
+    }
+    .instances-table-wrapper tbody tr:hover {
+      background: rgba(37, 99, 235, 0.1);
+      cursor: pointer;
+    }
+    .instances-editor {
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .instances-test-panel {
+      grid-column: 1 / -1;
+      min-height: 140px;
+    }
+    .instances-editor fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .instances-editor label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      gap: 4px;
+    }
+    .instances-editor input,
+    .instances-editor textarea {
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--input-bg);
+      color: var(--panel-title);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    .instances-editor textarea {
+      min-height: 70px;
+      resize: vertical;
+      font-family: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .instances-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .status-line {
+      font-size: 13px;
+      min-height: 20px;
+    }
+    .status-line.success { color: var(--success); }
+    .status-line.error { color: var(--danger); }
+    @media (max-width: 960px) {
+      .registry-body {
+        grid-template-columns: 1fr;
+      }
+      .instances-body {
+        grid-template-columns: 1fr;
+      }
+      .refresh-card {
+        grid-column: auto;
+      }
+      .registry-table-wrapper,
+      .registry-table-wrapper tbody,
+      .merchant-sites-table-wrapper,
+      .merchant-sites-card tbody,
+      .instances-table-wrapper,
+      .instances-table-wrapper tbody {
+        max-height: 320px;
+      }
+    }
+    @media (max-width: 1180px) {
+      .maintenance-grid {
+        grid-template-columns: 1fr;
+      }
+      .refresh-card {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="sis-header"></div>
+  <div class="sis-content">
+  <main class="sis-main maintenance-main">
+    <section class="sis-panel">
+
+      <div class="maintenance-grid" style="padding-right: 10px;">
+        <article class="maint-card refresh-card" id="refreshCard">
+          <div>
+            <h2>Data Refresh</h2>
+            <p class="description">
+              Refresh GA, card placement results, and cardholder sessions so funnels, health views, and exports stay current.
+            </p>
+          </div>
+          <div class="refresh-controls">
+            <label>
+              Range Preset
+              <select id="refreshPreset">
+                <option value="last3" selected>Last 3 days</option>
+                <option value="last7">Last 7 days</option>
+                <option value="last14">Last 14 days</option>
+                <option value="last30">Last 30 days</option>
+                <option value="last60">Last 60 days</option>
+                <option value="last90">Last 90 days</option>
+                <option value="ytd">Year to date</option>
+                <option value="">Custom</option>
+              </select>
+            </label>
+            <label>
+              Start Date
+              <input type="date" id="refreshStartDate" />
+            </label>
+            <label>
+              End Date
+              <input type="date" id="refreshEndDate" />
+            </label>
+            <div class="refresh-button-wrap">
+              <button class="btn" id="refreshBtn" type="button">Start Refresh</button>
+            </div>
+            <label class="checkbox">
+              <input type="checkbox" id="refreshForceRaw" />
+              Force refetch raw data
+            </label>
+          </div>
+          <div class="refresh-freshness" id="dataFreshness" aria-live="polite"></div>
+          <div class="refresh-status" aria-live="polite">
+            <p id="refreshStatus">Idle.</p>
+            <pre id="refreshLog" class="refresh-log"></pre>
+          </div>
+        </article>
+
+        <article class="maint-card registry-card">
+          <div>
+            <h2>FI Registry Editor</h2>
+            <p class="description">Curate issuer metadata—names, lookup keys, integration type, partner, and cardholder counts—without redeploys.</p>
+          </div>
+            <div class="registry-controls">
+              <label>
+                Search
+                <input type="text" id="registrySearch" placeholder="FI or instance name" />
+              </label>
+              <label>
+                Instance
+                <select id="registryInstanceFilter">
+                  <option value="">(all)</option>
+                </select>
+              </label>
+              <label>
+                Integration
+                <select id="registryIntegrationFilter">
+                  <option value="">(all)</option>
+                  <option value="SSO">SSO</option>
+                  <option value="NON-SSO">NON-SSO</option>
+                  <option value="CardSavr">CardSavr</option>
+                  <option value="TEST">TEST</option>
+                  <option value="UNKNOWN">UNKNOWN</option>
+                </select>
+              </label>
+              <label>
+                Partner
+                <select id="registryPartnerFilter">
+                  <option value="">(all)</option>
+                </select>
+              </label>
+              <button class="btn secondary" id="registryReloadBtn" type="button">Reload Registry</button>
+              <button class="btn secondary" id="registryFindDupes" type="button">Find Duplicates</button>
+            </div>
+          <div class="registry-body">
+            <div class="registry-table-wrapper">
+              <table id="registryTable">
+                <thead>
+                  <tr>
+                    <th data-column="fi_name" class="sortable">
+                      FI <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="fi_lookup_key" class="sortable">
+                      Lookup Key <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="integration_type" class="sortable">
+                      Integration <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="core_vendor" class="sortable">
+                      Core Vendor <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="core_product" class="sortable">
+                      Core Product <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="debit_processor" class="sortable">
+                      Debit Processor <span class="sort-indicator">↕</span>
+                    </th>
+                    <th data-column="credit_processor" class="sortable">
+                      Credit Processor <span class="sort-indicator">↕</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="registryTableBody">
+                  <tr><td colspan="7">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="registry-editor" id="registryEditor">
+              <div class="status-line" id="editorStatus">Select an FI row to edit its metadata.</div>
+              <form id="registryForm">
+                <fieldset>
+                  <label>
+                    FI Name
+                    <input type="text" id="editorFiName" required />
+                  </label>
+                  <label>
+                    FI Lookup Key
+                    <input type="text" id="editorFiLookup" required />
+                  </label>
+                  <label>
+                    Instance
+                    <input type="text" id="editorInstance" disabled />
+                  </label>
+                  <label>
+                    Integration Type
+                    <select id="editorIntegration" required>
+                      <option value="SSO">SSO</option>
+                      <option value="NON-SSO">NON-SSO</option>
+                      <option value="CardSavr">CardSavr</option>
+                      <option value="TEST">TEST</option>
+                      <option value="UNKNOWN">UNKNOWN</option>
+                    </select>
+                  </label>
+                  <label>
+                    Partner
+                    <input type="text" id="editorPartner" list="partnerOptions" placeholder="e.g. Alkami" />
+                    <datalist id="partnerOptions">
+                      <option value="Alkami"></option>
+                      <option value="DigitalOnboarding"></option>
+                      <option value="PSCU"></option>
+                      <option value="Marquis"></option>
+                      <option value="MSU"></option>
+                      <option value="CardSavr"></option>
+                      <option value="Direct ss01"></option>
+                      <option value="Advancial"></option>
+                    </datalist>
+                  </label>
+                  <label>
+                    Core Vendor
+                    <input type="text" id="editorCoreVendor" placeholder="e.g. Fiserv" />
+                  </label>
+                  <label>
+                    Core Product
+                    <input type="text" id="editorCoreProduct" placeholder="e.g. DNA CoreAPI" />
+                  </label>
+                  <label>
+                    Debit Processor
+                    <input type="text" id="editorDebitProcessor" placeholder="e.g. PSCU" />
+                  </label>
+                  <label>
+                    Credit Processor
+                    <input type="text" id="editorCreditProcessor" placeholder="e.g. FIS" />
+                  </label>
+                  <label>
+                    Cardholders
+                    <input type="text" id="editorCardholders" placeholder="e.g. 125000" />
+                  </label>
+                  <label>
+                    Cardholder Source
+                    <select id="editorSource">
+                      <option value="">(none)</option>
+                      <option value="customer-provided">customer-provided</option>
+                      <option value="estimate">estimate</option>
+                    </select>
+                  </label>
+                  <label>
+                    Cardholder As Of
+                    <input type="date" id="editorAsOf" />
+                  </label>
+                </fieldset>
+                <div class="editor-meta" id="editorMeta"></div>
+                <div class="editor-actions">
+                  <button class="btn" type="submit" id="editorSaveBtn" disabled>Save Changes</button>
+                  <button class="btn secondary" type="button" id="editorResetBtn" disabled>Reset</button>
+                  <button class="btn danger" type="button" id="editorDeleteBtn" disabled>Delete</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </article>
+
+        <article class="maint-card instances-card">
+          <div>
+            <h2>Instance Credentials</h2>
+            <p class="description">Manage the endpoints and keys that power real-time access to your data; rotate or update safely.</p>
+          </div>
+          <div class="instances-controls">
+            <label>
+              Search
+              <input type="text" id="instancesSearch" placeholder="Instance name, app, or URL" />
+            </label>
+            <div class="instance-actions">
+              <button class="btn secondary" id="instancesReloadBtn" type="button">Reload</button>
+              <button class="btn secondary" id="instancesTestBtn" type="button">Test Access</button>
+              <button class="btn" id="instancesNewBtn" type="button">New Instance</button>
+            </div>
+          </div>
+          <div class="instances-body">
+            <div class="instances-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>App</th>
+                    <th>Endpoint</th>
+                  </tr>
+                </thead>
+                <tbody id="instancesTableBody">
+                  <tr><td colspan="3">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="instances-editor" id="instancesEditor">
+              <div class="status-line" id="instancesStatus">Select an instance to view credentials or create a new one.</div>
+              <form id="instancesForm">
+                <fieldset>
+                  <label>
+                    Name
+                    <input type="text" id="instanceName" required placeholder="e.g. advancial-prod" />
+                  </label>
+                  <label>
+                    App Name
+                    <input type="text" id="instanceApp" placeholder="e.g. SIS_Insights" />
+                  </label>
+                  <label>
+                    Cardsavr Endpoint
+                    <input type="text" id="instanceUrl" required placeholder="https://api.example.cardsavr.io" />
+                  </label>
+                  <label>
+                    Username
+                    <input type="text" id="instanceUsername" required />
+                  </label>
+                  <label>
+                    Password
+                    <input type="text" id="instancePassword" required />
+                  </label>
+                  <label>
+                    API Key
+                    <textarea id="instanceApiKey" required></textarea>
+                  </label>
+                </fieldset>
+                <div class="instances-meta" id="instancesMeta"></div>
+                <div class="editor-actions">
+                  <button class="btn" type="submit" id="instanceSaveBtn" disabled>Save Instance</button>
+                  <button class="btn secondary" type="button" id="instanceResetBtn" disabled>Reset</button>
+                  <button class="btn danger" type="button" id="instanceDeleteBtn" disabled>Delete</button>
+                </div>
+              </form>
+            </div>
+            <div class="refresh-status instances-test-panel" id="instancesTestPanel" hidden>
+              <p>Credential test output</p>
+              <div class="status-line" id="instancesTestStatus"></div>
+              <pre class="refresh-log" id="instancesTestLog">(click "Test Access" to run)</pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="maint-card ga-service-card">
+          <div>
+            <h2>Google Analytics Credentials</h2>
+            <p class="description">Manage GA service account JSON credentials (production + test) used to query GA data.</p>
+          </div>
+          <div class="instances-controls">
+            <label>
+              Credential
+              <select id="gaCredSelect">
+                <option value="prod">Production (ga-service-account.json)</option>
+                <option value="test">Test (ga-test.json)</option>
+              </select>
+            </label>
+            <label>
+              Upload JSON file
+              <input type="file" id="gaCredFile" accept="application/json,.json" />
+            </label>
+            <div class="instance-actions">
+              <button class="btn secondary" id="gaCredReloadBtn" type="button">Reload</button>
+              <button class="btn secondary" id="gaCredTestBtn" type="button">Test Access</button>
+              <button class="btn secondary" id="gaCredResetBtn" type="button">Reset</button>
+              <button class="btn" id="gaCredSaveBtn" type="button">Save JSON</button>
+              <button class="btn danger" id="gaCredDeleteBtn" type="button">Delete</button>
+            </div>
+          </div>
+          <div class="refresh-status">
+            <p>Credential JSON (editable)</p>
+            <textarea id="gaCredJson" class="ga-json-editor" placeholder="Paste GA service account JSON here, or choose a file above. Then click Save JSON."></textarea>
+          </div>
+          <div class="refresh-status">
+            <p>Status</p>
+            <div class="status-line" id="gaCredStatus">Loading…</div>
+            <pre class="refresh-log" id="gaCredMeta"></pre>
+          </div>
+          <div class="refresh-status instances-test-panel" id="gaCredTestPanel" hidden>
+            <p>GA credential test output</p>
+            <div class="status-line" id="gaCredTestStatus"></div>
+            <pre class="refresh-log" id="gaCredTestLog">(click "Test Access" to run)</pre>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <script src="./theme-toggle.js"></script>
+  <script>
+    (function setupRefreshPanel() {
+      const button = document.getElementById("refreshBtn");
+      const statusEl = document.getElementById("refreshStatus");
+      const logEl = document.getElementById("refreshLog");
+      const startInput = document.getElementById("refreshStartDate");
+      const endInput = document.getElementById("refreshEndDate");
+      const presetSelect = document.getElementById("refreshPreset");
+      const forceCheckbox = document.getElementById("refreshForceRaw");
+      const freshnessEl = document.getElementById("dataFreshness");
+      let source = null;
+
+      const iso = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      function setStatus(text) {
+        statusEl.textContent = text || "";
+      }
+      function labelFromFreshness(data) {
+        if (!data) return "";
+        const parts = [];
+        if (data.rawLatest) {
+          const age = data.rawAgeDays ?? null;
+          parts.push(
+            `Raw: ${data.rawLatest}${
+              Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : ""
+            }`
+          );
+        }
+        if (data.dailyLatest) {
+          const age = data.dailyAgeDays ?? null;
+          parts.push(
+            `Daily: ${data.dailyLatest}${
+              Number.isFinite(age) ? ` (${age} day${age === 1 ? "" : "s"} old)` : ""
+            }`
+          );
+        }
+        return parts.join(" • ");
+      }
+      async function loadFreshness() {
+        if (!freshnessEl) return;
+        freshnessEl.textContent = "Checking data freshness…";
+        try {
+          const res = await fetch("/data-freshness");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const label = labelFromFreshness(data);
+          freshnessEl.textContent = label
+            ? `Latest data — ${label}`
+            : "Latest data not available.";
+        } catch (err) {
+          console.error("freshness load failed", err);
+          freshnessEl.textContent = "Unable to determine data freshness.";
+        }
+      }
+
+      function appendLogLine(text) {
+        if (!text) return;
+        const ts = new Date().toLocaleTimeString();
+        const normalized = text.replace(/\r\n?/g, "\n");
+        logEl.textContent += `[${ts}] ${normalized}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function applyPreset(value) {
+        const today = new Date();
+        const dayMs = 86400000;
+        const endDate = new Date(today.getTime() - dayMs); // yesterday
+        const endIso = iso(endDate);
+        const startOfYear = `${endDate.getFullYear()}-01-01`;
+        const daysAgo = (n) => iso(new Date(endDate.getTime() - n * dayMs));
+        let start = daysAgo(2); // default 3-day window
+        let end = endIso;
+        switch (value) {
+          case "last3":
+            start = daysAgo(2);
+            break;
+          case "last7":
+            start = daysAgo(6);
+            break;
+          case "last14":
+            start = daysAgo(13);
+            break;
+          case "last30":
+            start = daysAgo(29);
+            break;
+          case "last60":
+            start = daysAgo(59);
+            break;
+          case "last90":
+            start = daysAgo(89);
+            break;
+          case "ytd":
+            start = startOfYear;
+            break;
+          default:
+            start = daysAgo(2);
+        }
+        startInput.value = start;
+        endInput.value = end;
+      }
+
+      function validRangeOrFallback(fallback) {
+        const endVal = endInput.value || "";
+        const startVal = startInput.value || "";
+        const today = new Date();
+        const yesterday = new Date(today.getTime() - 86400000);
+        const defaultEnd = iso(yesterday);
+        const end = /^\d{4}-\d{2}-\d{2}$/.test(endVal)
+          ? endVal
+          : fallback?.end || defaultEnd;
+        const start = /^\d{4}-\d{2}-\d{2}$/.test(startVal)
+          ? startVal
+          : fallback?.start || iso(new Date(new Date(end).getTime() - 2 * 86400000)); // default 3-day window
+        if (new Date(`${start}T00:00:00Z`) > new Date(`${end}T00:00:00Z`)) {
+          return null;
+        }
+        return { start, end };
+      }
+
+      function setDefaultRange() {
+        applyPreset("last3");
+        if (presetSelect) presetSelect.value = "last3";
+        // Ensure end never exceeds yesterday on load
+        const today = new Date();
+        const yesterdayIso = iso(new Date(today.getTime() - 86400000));
+        if (endInput && endInput.value > yesterdayIso) {
+          endInput.value = yesterdayIso;
+        }
+        if (forceCheckbox) forceCheckbox.checked = false;
+      }
+
+      async function openStream(range) {
+        if (!button) return;
+        if (source) {
+          source.close();
+          source = null;
+        }
+        const resolvedRange = validRangeOrFallback(range);
+        if (!resolvedRange) {
+          setStatus("Start date must be on or before end date.");
+          return;
+        }
+        startInput.value = resolvedRange.start;
+        endInput.value = resolvedRange.end;
+
+        // Check which dates need refetching
+        setStatus("Checking for incomplete dates...");
+        try {
+          const response = await fetch(`/api/check-raw-data?start=${resolvedRange.start}&end=${resolvedRange.end}`);
+          const result = await response.json();
+          const datesToRefetch = result.datesToRefetch || [];
+
+          if (datesToRefetch.length === 0) {
+            setStatus("All data is complete. No refresh needed.");
+            appendLogLine("✓ All raw data for this date range is complete.");
+            return;
+          }
+
+          // Show confirmation
+          const confirmMsg = `Found ${datesToRefetch.length} incomplete day(s):\n${datesToRefetch.join(', ')}\n\nRefetch these days?`;
+          if (!confirm(confirmMsg)) {
+            setStatus("Refresh cancelled by user.");
+            return;
+          }
+
+          // Use the first and last incomplete dates as the actual range
+          const actualStart = datesToRefetch[0];
+          const actualEnd = datesToRefetch[datesToRefetch.length - 1];
+          startInput.value = actualStart;
+          endInput.value = actualEnd;
+
+          setStatus(`Refreshing ${datesToRefetch.length} incomplete day(s): ${actualStart} → ${actualEnd}...`);
+          appendLogLine(`Refreshing incomplete dates: ${datesToRefetch.join(', ')}`);
+
+          const params = new URLSearchParams({
+            start: actualStart,
+            end: actualEnd,
+            forceRaw: "false", // Never force refetch - only incomplete days need refetching
+          });
+
+          logEl.textContent = "";
+          source = new EventSource(`/run-update/stream?${params.toString()}`);
+        } catch (err) {
+          console.error('[Maintenance] Check incomplete dates failed:', err);
+          setStatus("Error checking data status. See console for details.", "error");
+          appendLogLine("Error: " + err.message);
+          return;
+        }
+
+        source.addEventListener("open", () => appendLogLine("Connected to update stream."));
+
+        source.addEventListener("snapshot", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            if (data.startDate) startInput.value = data.startDate;
+            if (data.endDate) endInput.value = data.endDate;
+            if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
+            if (data.running) {
+              setStatus(`Update already running for ${data.startDate} → ${data.endDate}…`);
+              appendLogLine(data.lastMessage || "Resumed existing job.");
+            } else if (data.finishedAt) {
+              setStatus("Last update complete (snapshot).");
+              if (data.lastMessage) appendLogLine(data.lastMessage);
+            } else {
+              setStatus("Ready to start update…");
+            }
+          } catch (err) {
+            console.error("snapshot parse error", err);
+          }
+        });
+
+        source.addEventListener("init", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            if (data.startDate) startInput.value = data.startDate;
+            if (data.endDate) endInput.value = data.endDate;
+            if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
+            setStatus(`Running: ${data.startDate} → ${data.endDate}`);
+            appendLogLine(data.message || "Update started.");
+          } catch (err) {
+            console.error("init parse error", err);
+          }
+        });
+
+        source.addEventListener("progress", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            if (data.message) appendLogLine(data.message);
+          } catch (err) {
+            console.error("progress parse error", err);
+          }
+        });
+
+        source.addEventListener("done", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            setStatus("Update complete.");
+            appendLogLine(data.message || "Done.");
+          } catch (err) {
+            console.error("done parse error", err);
+          }
+          source?.close();
+          source = null;
+        });
+
+        source.addEventListener("job_error", (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            setStatus(data.message || "Refresh cancelled.", "error");
+            appendLogLine(data.message || "Refresh cancelled.");
+            if (Array.isArray(data.failures) && data.failures.length) {
+              data.failures.forEach((f) => {
+                const name = f?.instanceName || f?.instance || "unknown";
+                const detail = f?.error ? ` - ${f.error}` : "";
+                appendLogLine(`  ${name}${detail}`);
+              });
+            }
+          } catch (err) {
+            console.error("job_error parse error", err);
+            setStatus("Refresh cancelled.", "error");
+            appendLogLine("Refresh cancelled.");
+          }
+          source?.close();
+          source = null;
+        });
+
+        source.addEventListener("error", () => {
+          setStatus("Update failed or connection lost.");
+          appendLogLine("Stream error or disconnect.");
+          source?.close();
+          source = null;
+        });
+      }
+
+      button?.addEventListener("click", () => openStream());
+      if (presetSelect) {
+        presetSelect.addEventListener("change", () => {
+          applyPreset(presetSelect.value || "last3");
+        });
+      }
+      startInput?.addEventListener("input", () => {
+        if (presetSelect) presetSelect.value = "";
+      });
+      endInput?.addEventListener("input", () => {
+        if (presetSelect) presetSelect.value = "";
+      });
+      forceCheckbox?.addEventListener("change", () => {
+        if (forceCheckbox.checked) {
+          appendLogLine("Force refetch raw is enabled. Existing raw caches in range will be replaced.");
+        }
+      });
+
+      async function hydrateStatus() {
+        setDefaultRange();
+        loadFreshness();
+        try {
+          const res = await fetch("/run-update/status");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          // Ignore server-provided default ranges; stick to our preset defaults
+          const today = new Date();
+          const yesterdayIso = iso(new Date(today.getTime() - 86400000));
+          if (startInput.value && new Date(startInput.value) > new Date(yesterdayIso)) {
+            startInput.value = yesterdayIso;
+          }
+          if (endInput.value && endInput.value > yesterdayIso) {
+            endInput.value = yesterdayIso;
+          }
+          if (forceCheckbox) forceCheckbox.checked = Boolean(data.forceRaw);
+          if (data.lastMessage) appendLogLine(data.lastMessage);
+          if (data.running) {
+            setStatus(`Update already running for ${data.startDate} → ${data.endDate}…`);
+            openStream({ start: data.startDate, end: data.endDate });
+          } else if (data.finishedAt) {
+            setStatus(`Last update completed for ${data.startDate} → ${data.endDate}.`, "success");
+          } else {
+            setStatus("Ready to start update…");
+          }
+        } catch (err) {
+          console.error("status hydrate failed", err);
+          // Keep defaults and show ready state even if status fetch fails
+          setStatus("Ready to start update…");
+        }
+      }
+
+      hydrateStatus();
+    })();
+
+    (function setupRegistryEditor() {
+      const searchInput = document.getElementById("registrySearch");
+      const integrationFilter = document.getElementById("registryIntegrationFilter");
+      const instanceFilter = document.getElementById("registryInstanceFilter");
+      const reloadBtn = document.getElementById("registryReloadBtn");
+      const dupesBtn = document.getElementById("registryFindDupes");
+      const tableBody = document.getElementById("registryTableBody");
+      const statusLine = document.getElementById("editorStatus");
+      const metaLine = document.getElementById("editorMeta");
+      const form = document.getElementById("registryForm");
+      const saveBtn = document.getElementById("editorSaveBtn");
+      const resetBtn = document.getElementById("editorResetBtn");
+      const deleteBtn = document.getElementById("editorDeleteBtn");
+      const inputs = {
+        fi: document.getElementById("editorFiName"),
+        fiLookup: document.getElementById("editorFiLookup"),
+        instance: document.getElementById("editorInstance"),
+        integration: document.getElementById("editorIntegration"),
+        partner: document.getElementById("editorPartner"),
+        coreVendor: document.getElementById("editorCoreVendor"),
+        coreProduct: document.getElementById("editorCoreProduct"),
+        debitProcessor: document.getElementById("editorDebitProcessor"),
+        creditProcessor: document.getElementById("editorCreditProcessor"),
+        cardholders: document.getElementById("editorCardholders"),
+        source: document.getElementById("editorSource"),
+        asOf: document.getElementById("editorAsOf"),
+      };
+      const partnerFilter = document.getElementById("registryPartnerFilter");
+      const registryTable = document.getElementById("registryTable");
+      const registrySortHeaders = registryTable
+        ? Array.from(registryTable.querySelectorAll("thead th[data-column]"))
+        : [];
+      let registrySortState = { column: "fi_name", direction: "asc" };
+
+      function toggleRegistrySort(column) {
+        if (!column) return;
+        if (registrySortState.column === column) {
+          registrySortState.direction =
+            registrySortState.direction === "asc" ? "desc" : "asc";
+          return;
+        }
+        registrySortState.column = column;
+        registrySortState.direction = "asc";
+      }
+
+      function getRegistrySortValue(entry, column) {
+        if (!column) return "";
+        const raw = entry ? entry[column] : null;
+        if (raw === null || raw === undefined) return "";
+        return raw.toString().trim().toLowerCase();
+      }
+
+      function sortRegistryEntries(list) {
+        const column = registrySortState.column;
+        if (!column) return [...list];
+        const factor = registrySortState.direction === "desc" ? -1 : 1;
+        return [...list].sort((a, b) => {
+          const aVal = getRegistrySortValue(a, column);
+          const bVal = getRegistrySortValue(b, column);
+          if (aVal === bVal) return 0;
+          return factor * aVal.localeCompare(bVal);
+        });
+      }
+
+      function updateRegistrySortIndicators() {
+        if (!registrySortHeaders.length) return;
+        registrySortHeaders.forEach((th) => {
+          const col = th.dataset.column;
+          const indicator = th.querySelector(".sort-indicator");
+          const isActive = registrySortState.column === col;
+          const isAsc = isActive && registrySortState.direction === "asc";
+          const isDesc = isActive && registrySortState.direction === "desc";
+          th.classList.toggle("sorted", isActive);
+          th.classList.toggle("asc", isAsc);
+          th.classList.toggle("desc", isDesc);
+          if (indicator) {
+            indicator.textContent = isActive ? (isAsc ? "▲" : "▼") : "↕";
+          }
+        });
+      }
+
+      let entries = [];
+      let filteredEntries = [];
+      let selectedKey = null;
+      let saving = false;
+      let showingDupes = false;
+      let duplicateRows = null;
+
+      function normalizeIntegration(value) {
+        if (!value) return "NON-SSO";
+        const upper = value.toString().trim().toUpperCase();
+        if (upper === "CARDSAVR" || upper === "CARD-SAVR") return "CardSavr";
+        if (upper === "SSO") return "SSO";
+        if (upper === "TEST") return "TEST";
+        if (upper === "UNKNOWN") return "UNKNOWN";
+        return "NON-SSO";
+      }
+
+      function formatCardholders(value) {
+        if (!value && value !== 0) return "";
+        return value.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");
+      }
+
+      function normalizeEntry(key, entry = {}) {
+        const fiName = entry.fi_name || key.split("__")[0] || key;
+        const instance = entry.instance || "unknown";
+        return {
+          key,
+          fi_name: fiName,
+          instance: instance || "unknown",
+          fi_lookup_key: entry.fi_lookup_key || fiName,
+          partner: entry.partner || "",
+          integration_type: normalizeIntegration(entry.integration_type),
+          cardholder_total: entry.cardholder_total ?? "",
+          cardholder_source: entry.cardholder_source || "",
+          cardholder_as_of: entry.cardholder_as_of || "",
+          first_seen: entry.first_seen || "",
+          last_seen: entry.last_seen || "",
+          core_vendor: entry.core_vendor || "",
+          core_product: entry.core_product || "",
+          debit_processor: entry.debit_processor || "",
+          credit_processor: entry.credit_processor || "",
+        };
+      }
+
+      function setStatus(message, kind = "") {
+        statusLine.textContent = message || "";
+        statusLine.className = "status-line " + kind;
+      }
+
+      async function fetchRegistryPayload() {
+        const candidates = [
+          "/fi-registry",
+          "assets/data/fi_registry.json",
+          "/assets/data/fi_registry.json",
+          "/public/assets/data/fi_registry.json",
+          "fi_registry.json",
+          "/fi_registry.json",
+        ];
+        for (const url of candidates) {
+          try {
+            const res = await fetch(url);
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status}`);
+            }
+            const payload = await res.json();
+            if (payload && (typeof payload === "object" || Array.isArray(payload))) {
+              console.log("[registry] loaded from", url);
+              return payload;
+            }
+          } catch (err) {
+            console.warn("[registry] unable to load from", url, err);
+          }
+        }
+        return null;
+      }
+
+      function renderTable(rowsOverride) {
+        const search = (searchInput.value || "").trim().toLowerCase();
+        const integrationValue = integrationFilter.value;
+        const instanceValue = instanceFilter.value;
+        const partnerValue = (partnerFilter?.value || "").trim().toLowerCase();
+        const source = Array.isArray(rowsOverride) ? rowsOverride : entries;
+        // rebuild instance/partner options from current rows
+        const instances = Array.from(new Set(source.map((e) => e.instance || "unknown"))).sort((a, b) =>
+          a.localeCompare(b)
+        );
+        const partners = Array.from(
+          new Set(
+            source
+              .map((e) => (e.partner || "").toString().trim())
+              .filter((val) => val)
+          )
+        ).sort((a, b) => a.localeCompare(b));
+        const keepInstance = instanceFilter.value || "";
+        const keepPartner = partnerFilter?.value || "";
+        instanceFilter.innerHTML = `<option value="">(all)</option>${instances
+          .map((val) => `<option value="${val}">${val}</option>`)
+          .join("")}`;
+        if (instances.includes(keepInstance)) {
+          instanceFilter.value = keepInstance;
+        }
+        if (partnerFilter) {
+          partnerFilter.innerHTML = `<option value="">(all)</option>${partners
+            .map((val) => `<option value="${val}">${val}</option>`)
+            .join("")}`;
+          if (partners.includes(keepPartner)) {
+            partnerFilter.value = keepPartner;
+          }
+        }
+        const filtered = source.filter((entry) => {
+          if (search) {
+            const haystack = `${entry.fi_name} ${entry.instance} ${entry.fi_lookup_key || ""} ${entry.partner || ""} ${entry.cardholder_source || ""}`.toLowerCase();
+            if (!haystack.includes(search)) return false;
+          }
+          if (integrationValue && entry.integration_type !== integrationValue) {
+            return false;
+          }
+          if (instanceValue && entry.instance !== instanceValue) {
+            return false;
+          }
+          if (
+            partnerValue &&
+            (entry.partner || "").toString().trim().toLowerCase() !== partnerValue
+          ) {
+            return false;
+          }
+          return true;
+        });
+        const sorted = sortRegistryEntries(filtered);
+        filteredEntries = sorted;
+
+        tableBody.innerHTML = "";
+        if (!sorted.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 7;
+          td.textContent = "No registry entries match the current filters.";
+          tr.appendChild(td);
+          tableBody.appendChild(tr);
+          updateRegistrySortIndicators();
+          return;
+        }
+
+        sorted.forEach((entry) => {
+          const tr = document.createElement("tr");
+          tr.dataset.key = entry.key;
+          if (entry.key === selectedKey) {
+            tr.classList.add("selected");
+          }
+          tr.innerHTML = `
+            <td>${entry.fi_name}</td>
+            <td>${entry.fi_lookup_key || "—"}</td>
+            <td>${entry.integration_type}</td>
+            <td>${entry.core_vendor || "—"}</td>
+            <td>${entry.core_product || "—"}</td>
+            <td>${entry.debit_processor || "—"}</td>
+            <td>${entry.credit_processor || "—"}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+        updateRegistrySortIndicators();
+      }
+
+      function populateForm(entry) {
+        if (!entry) {
+          inputs.fi.value = "";
+          inputs.fiLookup.value = "";
+          inputs.instance.value = "";
+          inputs.integration.value = "NON-SSO";
+          inputs.partner.value = "";
+          inputs.coreVendor.value = "";
+          inputs.coreProduct.value = "";
+          inputs.debitProcessor.value = "";
+          inputs.creditProcessor.value = "";
+          inputs.cardholders.value = "";
+          inputs.source.value = "";
+          inputs.asOf.value = "";
+          metaLine.textContent = "";
+          saveBtn.disabled = true;
+          resetBtn.disabled = true;
+          deleteBtn.disabled = true;
+          return;
+        }
+        inputs.fi.value = entry.fi_name;
+        inputs.fiLookup.value = entry.fi_lookup_key || entry.fi_name || "";
+        inputs.instance.value = entry.instance;
+        inputs.integration.value = entry.integration_type || "NON-SSO";
+        inputs.partner.value = entry.partner || "";
+        inputs.coreVendor.value = entry.core_vendor || "";
+        inputs.coreProduct.value = entry.core_product || "";
+        inputs.debitProcessor.value = entry.debit_processor || "";
+        inputs.creditProcessor.value = entry.credit_processor || "";
+        inputs.cardholders.value = entry.cardholder_total || "";
+        const sourceValue = entry.cardholder_source || "";
+        if (
+          sourceValue &&
+          !Array.from(inputs.source.options).some((opt) => opt.value === sourceValue)
+        ) {
+          const opt = document.createElement("option");
+          opt.value = sourceValue;
+          opt.textContent = sourceValue;
+          inputs.source.appendChild(opt);
+        }
+        inputs.source.value = sourceValue;
+        inputs.asOf.value = entry.cardholder_as_of || "";
+        const metaParts = [
+          `First seen: ${entry.first_seen || "—"}`,
+          `Last seen: ${entry.last_seen || "—"}`,
+        ];
+        const extraMeta = [];
+        if (entry.core_vendor) extraMeta.push(`Core Vendor: ${entry.core_vendor}`);
+        if (entry.core_product) extraMeta.push(`Core Product: ${entry.core_product}`);
+        if (entry.debit_processor) extraMeta.push(`Debit Processor: ${entry.debit_processor}`);
+        if (entry.credit_processor) extraMeta.push(`Credit Processor: ${entry.credit_processor}`);
+        if (extraMeta.length) {
+          metaParts.push(extraMeta.join(" • "));
+        }
+        metaLine.textContent = metaParts.join(" • ");
+        saveBtn.disabled = false;
+        resetBtn.disabled = false;
+        deleteBtn.disabled = false;
+      }
+
+      function getEntryByKey(key) {
+        return entries.find((entry) => entry.key === key) || null;
+      }
+
+      function selectEntry(key) {
+        selectedKey = key;
+        const entry = getEntryByKey(key);
+        populateForm(entry);
+        setStatus(entry ? `Editing ${entry.fi_name} (${entry.instance})` : "Select an FI row to edit its metadata.");
+        renderTable(showingDupes ? duplicateRows : undefined);
+      }
+
+      async function loadRegistry() {
+        setStatus("Loading registry…");
+        tableBody.innerHTML = "<tr><td colspan='7'>Loading…</td></tr>";
+        try {
+          const payload = await fetchRegistryPayload();
+          if (!payload) {
+            throw new Error("No registry payload available");
+          }
+          entries = Object.entries(payload || {}).map(([key, value]) => normalizeEntry(key, value));
+          selectedKey = selectedKey && entries.some((e) => e.key === selectedKey) ? selectedKey : null;
+          populateForm(getEntryByKey(selectedKey));
+          renderTable();
+          setStatus("Registry loaded.", "success");
+        } catch (err) {
+          console.error("registry load failed", err);
+          setStatus("Failed to load registry.", "error");
+          tableBody.innerHTML = "<tr><td colspan='7'>Unable to load registry.</td></tr>";
+        }
+      }
+      async function reloadRegistryFromData() {
+        if (!window.confirm("Reload registry from data? New FI + instance combos will be added; existing entries are untouched.")) return;
+        setStatus("Scanning data for new FI + instance combos…");
+        tableBody.innerHTML = "<tr><td colspan='7'>Scanning…</td></tr>";
+        try {
+          const normalizeFiKey = (val) =>
+            val ? val.toString().trim().toLowerCase() : "";
+          const normalizeInstanceKey = (val) => {
+            if (!val) return "unknown";
+            const s = val.toString().trim().toLowerCase();
+            return s || "unknown";
+          };
+          const makeKey = (fi, inst) => `${normalizeFiKey(fi)}__${normalizeInstanceKey(inst)}`;
+
+          const resRegistry = await fetch("/fi-registry");
+          if (!resRegistry.ok) throw new Error(`Registry load failed: ${resRegistry.status}`);
+          const registryPayload = await resRegistry.json();
+          const existingKeys = new Set(
+            Object.entries(registryPayload || {}).flatMap(([key, value]) => {
+              const keys = [];
+              if (key.includes("__")) {
+                keys.push(key.toLowerCase());
+              } else {
+                const [fi, inst] = key.split("__");
+                keys.push(makeKey(fi, inst || "unknown"));
+              }
+              // also include lookup-key + instance from the value to avoid re-adding
+              const valFi = (value?.fi_lookup_key || value?.fi_name || "").toLowerCase();
+              const valInst = (value?.instance || (Array.isArray(value?.instances) ? value.instances[0] : "") || "unknown").toLowerCase();
+              if (valFi) {
+                keys.push(makeKey(valFi, valInst || "unknown"));
+              }
+              return keys;
+            })
+          );
+
+          const listRes = await fetch("/list-daily");
+          if (!listRes.ok) throw new Error(`Daily list failed: ${listRes.status}`);
+          const listPayload = await listRes.json();
+          const files = listPayload.files || [];
+
+          const seenNew = new Map();
+          for (const file of files) {
+            try {
+              const daily = await fetch(`/daily?date=${file.replace(".json", "")}`).then((r) => r.json());
+              const fiInstances = daily?.fi_instances || {};
+              const fiEntries = daily?.fi || {};
+
+              const addCombo = (fiKeyRaw, instanceRaw) => {
+                const fiKey = (fiKeyRaw || "").toString().trim();
+                const instance = (instanceRaw || "unknown").toString().trim();
+                if (!fiKey) return;
+                const normKey = makeKey(fiKey, instance);
+                if (existingKeys.has(normKey)) return;
+                if (seenNew.has(normKey)) return;
+                const guessedIntegration = /dev|test/i.test(instance) ? "TEST" : "NON-SSO";
+                seenNew.set(normKey, {
+                  fi_name: fiKey,
+                  fi_lookup_key: normalizeFiKey(fiKey),
+                  instance: instance || "unknown",
+                  integration_type: guessedIntegration,
+                  partner: "Unknown",
+                });
+              };
+
+              Object.entries(fiInstances).forEach(([key, val]) => {
+                addCombo(val.fi_lookup_key || val.fi_name || val.fi || key.split("__")[0], val.instance || key.split("__")[1]);
+              });
+
+              Object.entries(fiEntries).forEach(([fiName, entry]) => {
+                const instances =
+                  (Array.isArray(entry.ga_instances) && entry.ga_instances.length
+                    ? entry.ga_instances
+                    : entry.instance
+                    ? [entry.instance]
+                    : ["unknown"]);
+                instances.forEach((inst) => addCombo(fiName, inst));
+              });
+            } catch (err) {
+              console.warn("daily scan failed", file, err);
+            }
+          }
+
+          const newEntries = Array.from(seenNew.entries());
+          if (!newEntries.length) {
+            setStatus("No new FI instances found.", "success");
+            await loadRegistry();
+            return;
+          }
+
+          setStatus(`Adding ${newEntries.length} new FI instances…`);
+          for (const [key, payload] of newEntries) {
+            try {
+              await fetch("/fi-registry/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key, updates: payload }),
+              });
+            } catch (err) {
+              console.warn("failed to add", key, err);
+            }
+          }
+          setStatus(`Added ${newEntries.length} new entries. Reloading…`, "success");
+          await loadRegistry();
+        } catch (err) {
+          console.error("reload scan failed", err);
+          setStatus(err?.message || "Failed to reload registry from data.", "error");
+        }
+      }
+
+      function gatherFormUpdates() {
+        const updates = {
+          fi_name: inputs.fi.value.trim(),
+          fi_lookup_key: inputs.fiLookup.value.trim(),
+          integration_type: inputs.integration.value,
+          partner: inputs.partner.value.trim(),
+          core_vendor: inputs.coreVendor.value.trim(),
+          core_product: inputs.coreProduct.value.trim(),
+          debit_processor: inputs.debitProcessor.value.trim(),
+          credit_processor: inputs.creditProcessor.value.trim(),
+          cardholder_total: inputs.cardholders.value.trim(),
+          cardholder_source: inputs.source.value.trim(),
+          cardholder_as_of: inputs.asOf.value || "",
+        };
+        if (!updates.fi_name) throw new Error("FI Name is required");
+        if (!updates.fi_lookup_key) throw new Error("FI Lookup Key is required");
+        updates.partner = updates.partner === "" ? null : updates.partner;
+        updates.core_vendor = updates.core_vendor === "" ? null : updates.core_vendor;
+        updates.core_product = updates.core_product === "" ? null : updates.core_product;
+        updates.debit_processor = updates.debit_processor === "" ? null : updates.debit_processor;
+        updates.credit_processor = updates.credit_processor === "" ? null : updates.credit_processor;
+        updates.cardholder_total = updates.cardholder_total === "" ? null : updates.cardholder_total;
+        updates.cardholder_source = updates.cardholder_source === "" ? null : updates.cardholder_source;
+        updates.cardholder_as_of = updates.cardholder_as_of === "" ? null : updates.cardholder_as_of;
+        return updates;
+      }
+
+      async function saveEntry() {
+        if (!selectedKey || saving) return;
+        saving = true;
+        saveBtn.disabled = true;
+        deleteBtn.disabled = true;
+        setStatus("Saving changes…");
+        try {
+          const payload = {
+            key: selectedKey,
+            updates: gatherFormUpdates(),
+          };
+          const res = await fetch("/fi-registry/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          const idx = entries.findIndex((entry) => entry.key === selectedKey);
+          if (idx >= 0) {
+            entries[idx] = normalizeEntry(selectedKey, data.entry || {});
+            populateForm(entries[idx]);
+            renderTable();
+          }
+          setStatus("Registry updated.", "success");
+        } catch (err) {
+          console.error("save failed", err);
+          setStatus(err?.message || "Failed to save changes.", "error");
+        } finally {
+          saving = false;
+          saveBtn.disabled = !selectedKey;
+          deleteBtn.disabled = !selectedKey;
+        }
+      }
+
+      async function deleteEntry() {
+        if (!selectedKey || saving) return;
+        const entry = getEntryByKey(selectedKey);
+        const label = entry ? `${entry.fi_name} (${entry.instance})` : selectedKey;
+        if (!window.confirm(`Delete ${label}? This cannot be undone.`)) {
+          return;
+        }
+        saving = true;
+        saveBtn.disabled = true;
+        resetBtn.disabled = true;
+        deleteBtn.disabled = true;
+        setStatus("Deleting entry…");
+        try {
+          const res = await fetch("/fi-registry/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: selectedKey }),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          entries = entries.filter((e) => e.key !== selectedKey);
+          selectedKey = null;
+          populateForm(null);
+          renderTable();
+          setStatus("Registry entry deleted.", "success");
+        } catch (err) {
+          console.error("delete failed", err);
+          setStatus(err?.message || "Failed to delete entry.", "error");
+        } finally {
+          saving = false;
+          saveBtn.disabled = !selectedKey;
+          resetBtn.disabled = !selectedKey;
+          deleteBtn.disabled = !selectedKey;
+        }
+      }
+
+      tableBody.addEventListener("click", (event) => {
+        const tr = event.target.closest("tr[data-key]");
+        if (!tr) return;
+        selectEntry(tr.dataset.key);
+      });
+
+      registrySortHeaders.forEach((th) => {
+        th.addEventListener("click", () => {
+          toggleRegistrySort(th.dataset.column);
+          renderTable();
+        });
+      });
+      updateRegistrySortIndicators();
+
+      searchInput.addEventListener("input", renderTable);
+      integrationFilter.addEventListener("change", renderTable);
+      instanceFilter.addEventListener("change", renderTable);
+      partnerFilter?.addEventListener("change", renderTable);
+      reloadBtn.addEventListener("click", reloadRegistryFromData);
+      dupesBtn?.addEventListener("click", () => {
+        if (!entries.length) {
+          setStatus("Load the registry first.");
+          return;
+        }
+        if (showingDupes) {
+          showingDupes = false;
+          duplicateRows = null;
+          setStatus("Showing filtered registry.");
+          renderTable();
+          return;
+        }
+        const map = new Map();
+        entries.forEach((entry) => {
+          const fiKey = (entry.fi_lookup_key || "").toString().trim().toLowerCase();
+          if (!fiKey) return;
+          const inst = (entry.instance || "unknown").toString().trim().toLowerCase();
+          const combo = `${fiKey}__${inst}`;
+          if (!map.has(combo)) map.set(combo, []);
+          map.get(combo).push(entry);
+        });
+        const dupes = Array.from(map.values()).filter((list) => list.length > 1).flat();
+        if (!dupes.length) {
+          setStatus("No duplicate FI+instance entries found.");
+          return;
+        }
+        showingDupes = true;
+        duplicateRows = dupes;
+        setStatus(`Showing ${dupes.length} duplicate entries (same FI+instance).`);
+        renderTable(duplicateRows);
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveEntry();
+      });
+
+      resetBtn.addEventListener("click", () => {
+        if (!selectedKey) return;
+        populateForm(getEntryByKey(selectedKey));
+        setStatus("Values reset.", "");
+      });
+      deleteBtn.addEventListener("click", deleteEntry);
+
+      loadRegistry();
+    })();
+
+    (function setupGaCredentialsManager() {
+      const select = document.getElementById("gaCredSelect");
+      const fileInput = document.getElementById("gaCredFile");
+      const reloadBtn = document.getElementById("gaCredReloadBtn");
+      const testBtn = document.getElementById("gaCredTestBtn");
+      const resetBtn = document.getElementById("gaCredResetBtn");
+      const saveBtn = document.getElementById("gaCredSaveBtn");
+      const deleteBtn = document.getElementById("gaCredDeleteBtn");
+      const statusLine = document.getElementById("gaCredStatus");
+      const meta = document.getElementById("gaCredMeta");
+      const jsonArea = document.getElementById("gaCredJson");
+      const testPanel = document.getElementById("gaCredTestPanel");
+      const testStatusLine = document.getElementById("gaCredTestStatus");
+      const testLog = document.getElementById("gaCredTestLog");
+      if (!select || !fileInput || !reloadBtn || !saveBtn || !deleteBtn || !statusLine || !meta || !jsonArea) {
+        return;
+      }
+
+      const apiBase =
+        window.location.protocol === "http:" || window.location.protocol === "https:"
+          ? window.location.origin
+          : "http://localhost:8787";
+
+      let lastLoadedText = "";
+      let allSummaryText = "";
+
+      function currentName() {
+        return (select.value || "").toString();
+      }
+
+      function setStatus(message, kind) {
+        statusLine.textContent = message || "";
+        statusLine.className = "status-line " + (kind || "");
+      }
+
+      function setMeta(text) {
+        meta.textContent = text || "";
+        meta.scrollTop = meta.scrollHeight;
+      }
+
+      function setTestStatus(message, kind) {
+        if (!testStatusLine) return;
+        testStatusLine.textContent = message || "";
+        testStatusLine.className = "status-line " + (kind || "");
+      }
+
+      function setTestLog(text) {
+        if (!testLog) return;
+        testLog.textContent = text || "";
+        testLog.scrollTop = testLog.scrollHeight;
+      }
+
+      function summarize(data) {
+        if (!data) return "";
+        const s = data.summary || {};
+        const lines = [];
+        lines.push(`Name: ${data.label || data.name || ""}`);
+        lines.push(`Path: ${data.path || ""}`);
+        if (data.updatedAt) lines.push(`Updated: ${data.updatedAt}`);
+        if (!data.exists) return lines.concat(["Not configured."]).join("\n");
+        lines.push(`Type: ${s.type || ""}`);
+        lines.push(`Project: ${s.projectId || ""}`);
+        lines.push(`Client: ${s.clientEmail || ""}`);
+        lines.push(`Has private key: ${s.hasPrivateKey ? "yes" : "no"}`);
+        return lines.join("\n");
+      }
+
+      async function loadSelectedCredential() {
+        try {
+          setStatus("Loading…");
+          setMeta(allSummaryText || "");
+          const selected = currentName();
+          if (!selected) {
+            setStatus('Select a credential, then paste JSON and click "Save JSON".', "");
+            jsonArea.value = "";
+            lastLoadedText = "";
+            if (testBtn) testBtn.disabled = true;
+            if (deleteBtn) deleteBtn.disabled = true;
+            return;
+          }
+          const name = encodeURIComponent(selected);
+          const res = await fetch(`${apiBase}/ga/credential?name=${name}`, { cache: "no-store" });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          if (data && data.exists) setStatus("Configured.", "success");
+          else setStatus("Not configured. Upload a JSON file or paste JSON and click Save JSON.", "");
+          const detail = summarize(data);
+          setMeta(allSummaryText ? (allSummaryText + "\n\n" + detail) : detail);
+          const txt = (data && typeof data.jsonText === "string") ? data.jsonText : "";
+          jsonArea.value = txt;
+          lastLoadedText = txt;
+          if (testBtn) testBtn.disabled = !(data && data.exists);
+          if (deleteBtn) deleteBtn.disabled = !(data && data.exists);
+        } catch (err) {
+          console.error("ga credential load failed", err);
+          setStatus(err?.message || "Failed to load GA credential.", "error");
+          setMeta("");
+          jsonArea.value = "";
+          lastLoadedText = "";
+          if (testBtn) testBtn.disabled = true;
+          if (deleteBtn) deleteBtn.disabled = true;
+        }
+      }
+
+      async function reloadAllSummary() {
+        try {
+          const res = await fetch(`${apiBase}/ga/credentials`, { cache: "no-store" });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          const list = Array.isArray(data.credentials) ? data.credentials : [];
+          const keep = currentName();
+          const allMissing = list.length > 0 && list.every((c) => !c.exists);
+          select.innerHTML = "";
+          if (allMissing) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "<add new>";
+            select.appendChild(opt);
+          }
+          list.forEach((c) => {
+            const opt = document.createElement("option");
+            opt.value = c.name || "";
+            opt.textContent = `${c.label || c.name} (${c.exists ? "configured" : "missing"})`;
+            select.appendChild(opt);
+          });
+          if (keep && Array.from(select.options).some((o) => o.value === keep)) {
+            select.value = keep;
+          } else if (allMissing) {
+            select.value = "";
+          } else {
+            select.value = (list[0] && list[0].name) ? list[0].name : "prod";
+          }
+          const lines = list.map((c) => {
+            const base = `${c.label || c.name}: ${c.exists ? "configured" : "missing"}`;
+            const when = c.updatedAt ? ` (${c.updatedAt})` : "";
+            return base + when;
+          });
+          allSummaryText = lines.join("\n");
+          setMeta(allSummaryText);
+        } catch (err) {
+          // ignore
+          allSummaryText = "";
+        }
+        await loadSelectedCredential();
+      }
+
+      function resetEditor() {
+        jsonArea.value = lastLoadedText || "";
+        setStatus("Reset.", "");
+      }
+
+      async function uploadFileIntoEditor() {
+        const f = fileInput.files && fileInput.files[0];
+        if (!f) {
+          setStatus("Choose a JSON file to upload.", "");
+          return;
+        }
+        try {
+          setStatus("Reading file…");
+          const text = await f.text();
+          const json = JSON.parse(text);
+          jsonArea.value = JSON.stringify(json, null, 2);
+          setStatus("Loaded file into editor. Click Save JSON to apply.", "");
+        } catch (err) {
+          console.error("ga file read failed", err);
+          setStatus(err?.message || "Invalid JSON file.", "error");
+        }
+      }
+
+      async function saveCredential() {
+        try {
+          if (!currentName()) {
+            setStatus('Select a credential (Production/Test) before saving.', "");
+            return;
+          }
+          setStatus("Saving…");
+          const name = currentName();
+          const jsonText = jsonArea.value || "";
+          JSON.parse(jsonText || "{}");
+          const res = await fetch(`${apiBase}/ga/credential/save`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, jsonText }),
+          });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          setStatus("Saved.", "success");
+          setMeta(summarize(data));
+          const txt = (data && typeof data.jsonText === "string") ? data.jsonText : jsonText;
+          jsonArea.value = txt;
+          lastLoadedText = txt;
+        } catch (err) {
+          console.error("ga credential save failed", err);
+          setStatus(err?.message || "Save failed.", "error");
+        } finally {
+          await loadSelectedCredential();
+        }
+      }
+
+      async function deleteCredential() {
+        try {
+          if (!currentName()) {
+            setStatus('Select a credential (Production/Test) before deleting.', "");
+            return;
+          }
+          setStatus("Deleting…");
+          const name = currentName();
+          const res = await fetch(`${apiBase}/ga/credential/delete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          });
+          const data = res.ok ? await res.json() : null;
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          setStatus("Deleted.", "success");
+          setMeta(summarize(data));
+          jsonArea.value = "";
+          lastLoadedText = "";
+        } catch (err) {
+          console.error("ga credential delete failed", err);
+          setStatus(err?.message || "Delete failed.", "error");
+        } finally {
+          await loadSelectedCredential();
+        }
+      }
+
+      async function testCredential() {
+        if (!testBtn || !testPanel) return;
+        try {
+          testPanel.hidden = false;
+          setTestStatus("Testing GA credential…");
+          setTestLog("Running GA read-only report (this may take a few seconds)…");
+          const name = currentName();
+          if (!name) throw new Error("Select a credential (Production/Test) first.");
+          const res = await fetch(`${apiBase}/ga/credential/test`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+          setTestStatus("GA access OK.", "success");
+          setTestLog(JSON.stringify(data, null, 2));
+        } catch (err) {
+          console.error("ga credential test failed", err);
+          setTestStatus(err?.message || "GA test failed.", "error");
+          setTestLog(err?.stack || String(err));
+        }
+      }
+
+      select.addEventListener("change", loadSelectedCredential);
+      reloadBtn.addEventListener("click", reloadAllSummary);
+      testBtn && testBtn.addEventListener("click", testCredential);
+      resetBtn && resetBtn.addEventListener("click", resetEditor);
+      saveBtn.addEventListener("click", saveCredential);
+      deleteBtn.addEventListener("click", deleteCredential);
+      fileInput.addEventListener("change", uploadFileIntoEditor);
+
+      reloadAllSummary();
+    })();
+
+    (function setupInstancesManager() {
+      const tableBody = document.getElementById("instancesTableBody");
+      const searchInput = document.getElementById("instancesSearch");
+      const reloadBtn = document.getElementById("instancesReloadBtn");
+      const testBtn = document.getElementById("instancesTestBtn");
+      const newBtn = document.getElementById("instancesNewBtn");
+      const statusLine = document.getElementById("instancesStatus");
+      const metaLine = document.getElementById("instancesMeta");
+      const testPanel = document.getElementById("instancesTestPanel");
+      const testStatusLine = document.getElementById("instancesTestStatus");
+      const testLog = document.getElementById("instancesTestLog");
+      const form = document.getElementById("instancesForm");
+      const saveBtn = document.getElementById("instanceSaveBtn");
+      const resetBtn = document.getElementById("instanceResetBtn");
+      const deleteBtn = document.getElementById("instanceDeleteBtn");
+      const apiBase =
+        window.location.origin.includes("8787")
+          ? window.location.origin
+          : "http://localhost:8787";
+      const inputs = {
+        name: document.getElementById("instanceName"),
+        app: document.getElementById("instanceApp"),
+        url: document.getElementById("instanceUrl"),
+        username: document.getElementById("instanceUsername"),
+        password: document.getElementById("instancePassword"),
+        apiKey: document.getElementById("instanceApiKey"),
+      };
+
+      let instances = [];
+      let selectedName = null;
+      let saving = false;
+
+      const normalize = (entry = {}) => ({
+        name: entry.name?.trim() || "",
+        APP_NAME: entry.APP_NAME?.trim() || "",
+        CARDSAVR_INSTANCE: entry.CARDSAVR_INSTANCE?.trim() || "",
+        USERNAME: entry.USERNAME?.trim() || "",
+        PASSWORD: entry.PASSWORD?.trim() || "",
+        API_KEY: entry.API_KEY?.trim() || "",
+      });
+
+      function setStatus(message, kind = "") {
+        statusLine.textContent = message || "";
+        statusLine.className = "status-line " + kind;
+      }
+
+      function setTestStatus(message, kind = "") {
+        if (!testStatusLine) return;
+        testStatusLine.textContent = message || "";
+        testStatusLine.className = "status-line " + kind;
+      }
+
+      function setTestLog(text) {
+        if (!testLog) return;
+        testLog.textContent = text || "";
+        testLog.scrollTop = testLog.scrollHeight;
+      }
+
+      function getEntry(name) {
+        return instances.find((inst) => inst.name === name) || null;
+      }
+
+      function renderTable() {
+        const search = (searchInput.value || "").toLowerCase().trim();
+        const filtered = instances
+          .filter((inst) => {
+            if (!search) return true;
+            const haystack = `${inst.name} ${inst.APP_NAME} ${inst.CARDSAVR_INSTANCE} ${inst.USERNAME}`
+              .toLowerCase();
+            return haystack.includes(search);
+          })
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        tableBody.innerHTML = "";
+        if (!filtered.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 3;
+          td.textContent = "No instances match the current filters.";
+          tr.appendChild(td);
+          tableBody.appendChild(tr);
+          return;
+        }
+
+        filtered.forEach((inst) => {
+          const tr = document.createElement("tr");
+          tr.dataset.name = inst.name;
+          if (inst.name === selectedName) tr.classList.add("selected");
+          tr.innerHTML = `
+            <td>${inst.name || "—"}</td>
+            <td>${inst.APP_NAME || "—"}</td>
+            <td>${inst.CARDSAVR_INSTANCE || "—"}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      }
+
+      function populateForm(entry) {
+        if (!entry) {
+          inputs.name.value = "";
+          inputs.app.value = "";
+          inputs.url.value = "";
+          inputs.username.value = "";
+          inputs.password.value = "";
+          inputs.apiKey.value = "";
+          metaLine.textContent = "";
+          resetBtn.disabled = true;
+          deleteBtn.disabled = true;
+          updateSaveState();
+          return;
+        }
+        inputs.name.value = entry.name;
+        inputs.app.value = entry.APP_NAME || "";
+        inputs.url.value = entry.CARDSAVR_INSTANCE || "";
+        inputs.username.value = entry.USERNAME || "";
+        inputs.password.value = entry.PASSWORD || "";
+        inputs.apiKey.value = entry.API_KEY || "";
+        metaLine.textContent = entry.CARDSAVR_INSTANCE
+          ? `Endpoint: ${entry.CARDSAVR_INSTANCE}`
+          : "";
+        resetBtn.disabled = false;
+        deleteBtn.disabled = false;
+        updateSaveState();
+      }
+
+      function updateSaveState() {
+        const required =
+          inputs.name.value.trim() &&
+          inputs.url.value.trim() &&
+          inputs.username.value.trim() &&
+          inputs.password.value.trim() &&
+          inputs.apiKey.value.trim();
+        saveBtn.disabled = saving || !required;
+        deleteBtn.disabled = saving || !selectedName;
+        if (testBtn) testBtn.disabled = saving;
+      }
+
+      function gatherFormEntry() {
+        return normalize({
+          name: inputs.name.value,
+          APP_NAME: inputs.app.value,
+          CARDSAVR_INSTANCE: inputs.url.value,
+          USERNAME: inputs.username.value,
+          PASSWORD: inputs.password.value,
+          API_KEY: inputs.apiKey.value,
+        });
+      }
+
+      async function loadInstances() {
+        setStatus("Loading instances…");
+        tableBody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+        try {
+          const res = await fetch("/instances");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const payload = await res.json();
+          const list = Array.isArray(payload?.instances) ? payload.instances : payload;
+          instances = Array.isArray(list) ? list.map(normalize) : [];
+          if (selectedName && !instances.some((i) => i.name === selectedName)) {
+            selectedName = null;
+          }
+          populateForm(selectedName ? getEntry(selectedName) : null);
+          renderTable();
+          const pathLabel = payload?.path ? ` (${payload.path})` : "";
+          metaLine.textContent = instances.length
+            ? `${instances.length} instance${instances.length === 1 ? "" : "s"} stored in instances.json${pathLabel}`
+            : `No instances defined yet${pathLabel}.`;
+          setStatus("Instances loaded.", "success");
+        } catch (err) {
+          console.error("instances load failed", err);
+          setStatus("Failed to load instances. Ensure the dev server is running and instances.json is present.", "error");
+          tableBody.innerHTML = "<tr><td colspan='3'>Unable to load instances.</td></tr>";
+          metaLine.textContent = "";
+        }
+      }
+
+      function selectInstance(name) {
+        selectedName = name;
+        populateForm(name ? getEntry(name) : null);
+        setStatus(name ? `Editing ${name}` : "Select an instance to view details.");
+        renderTable();
+      }
+
+      function startNewInstance() {
+        selectedName = null;
+        populateForm({
+          name: "",
+          APP_NAME: "",
+          CARDSAVR_INSTANCE: "",
+          USERNAME: "",
+          PASSWORD: "",
+          API_KEY: "",
+        });
+        setStatus("Creating a new instance entry.");
+        renderTable();
+      }
+
+      async function saveInstance() {
+        if (saving) return;
+        if (form.reportValidity && !form.reportValidity()) return;
+        saving = true;
+        updateSaveState();
+        const isNew = !selectedName;
+        setStatus(isNew ? "Creating instance…" : "Saving changes…");
+
+        try {
+          const payload = {
+            originalName: selectedName,
+            entry: gatherFormEntry(),
+          };
+          const res = await fetch("/instances/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          if (Array.isArray(data.instances)) {
+            instances = data.instances.map(normalize);
+          } else {
+            const updated = normalize(data.entry || payload.entry);
+            const idx = instances.findIndex((i) => i.name === updated.name);
+            if (idx >= 0) instances[idx] = updated;
+            else instances.push(updated);
+          }
+          selectedName = (data.entry && data.entry.name) || payload.entry.name;
+          populateForm(getEntry(selectedName));
+          renderTable();
+          setStatus(isNew ? "Instance created." : "Instance updated.", "success");
+        } catch (err) {
+          console.error("save instance failed", err);
+          setStatus(err.message || "Failed to save instance.", "error");
+        } finally {
+          saving = false;
+          updateSaveState();
+        }
+      }
+
+      async function testInstanceAccess() {
+        if (saving) return;
+        saving = true;
+        updateSaveState();
+        if (testPanel) testPanel.hidden = false;
+        setTestStatus("Testing instance credentials (sessions + placements)…");
+        setTestLog("Running…");
+
+        try {
+          const today = new Date();
+          const yesterday = new Date(today.getTime() - 86400000);
+          const date = yesterday.toISOString().slice(0, 10);
+          const res = await fetch(`${apiBase}/instances/test`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date }),
+          });
+          const contentType = (res.headers.get("content-type") || "").toLowerCase();
+          if (!contentType.includes("application/json")) {
+            const preview = await res.text().catch(() => "");
+            throw new Error(
+              `Unexpected response from /instances/test (not JSON). Ensure the SIS server is running on ${apiBase} and restart it after updates.${preview ? ` Preview: ${preview.slice(0, 120)}` : ""}`
+            );
+          }
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.error || `HTTP ${res.status}`);
+          }
+          const results = Array.isArray(data?.results) ? data.results : [];
+          if (!results.length) {
+            setTestLog(
+              "No instances found to test.\n\nIf this is unexpected, verify `secrets/instances.json` is populated on the server you're hitting."
+            );
+            setTestStatus("No instances found to test.", "error");
+            return;
+          }
+          const lines = results.map((r) => {
+            const name = r?.instanceName || "unknown";
+            if (r?.ok) return `✅ ${name}`;
+            const msg = r?.error ? ` — ${r.error}` : " — failed";
+            return `❌ ${name}${msg}`;
+          });
+          setTestLog(lines.join("\n"));
+          const failing = Array.isArray(data?.failingInstances)
+            ? data.failingInstances.filter(Boolean)
+            : [];
+          if (data?.ok) {
+            setTestStatus(
+              `All ${results.length} instances OK (tested ${data.date || date}).`,
+              "success"
+            );
+          } else {
+            setTestStatus(
+              `Access failed for ${failing.length || data?.failures || "some"} instance(s): ${failing.join(", ")}`,
+              "error"
+            );
+          }
+        } catch (err) {
+          console.error("instances test failed", err);
+          setTestLog(err?.message || "Test failed.");
+          setTestStatus(err?.message || "Test failed.", "error");
+        } finally {
+          saving = false;
+          updateSaveState();
+        }
+      }
+
+      async function deleteInstance() {
+        if (!selectedName || saving) return;
+        const confirmDelete = window.confirm(
+          `Delete instance "${selectedName}" from instances.json?`
+        );
+        if (!confirmDelete) return;
+        saving = true;
+        updateSaveState();
+        setStatus(`Deleting ${selectedName}…`);
+        try {
+          const res = await fetch("/instances/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: selectedName }),
+          });
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          if (Array.isArray(data.instances)) {
+            instances = data.instances.map(normalize);
+          } else {
+            instances = instances.filter((inst) => inst.name !== selectedName);
+          }
+          selectedName = null;
+          populateForm(null);
+          renderTable();
+          setStatus("Instance deleted.", "success");
+        } catch (err) {
+          console.error("delete instance failed", err);
+          setStatus(err.message || "Failed to delete instance.", "error");
+        } finally {
+          saving = false;
+          updateSaveState();
+        }
+      }
+
+      tableBody.addEventListener("click", (event) => {
+        const tr = event.target.closest("tr[data-name]");
+        if (!tr) return;
+        selectInstance(tr.dataset.name);
+      });
+      searchInput.addEventListener("input", renderTable);
+      reloadBtn.addEventListener("click", loadInstances);
+      testBtn?.addEventListener("click", testInstanceAccess);
+      newBtn.addEventListener("click", startNewInstance);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveInstance();
+      });
+      form.addEventListener("input", updateSaveState);
+      resetBtn.addEventListener("click", () => {
+        if (!selectedName) return;
+        populateForm(getEntry(selectedName));
+        setStatus("Values reset.", "");
+      });
+      deleteBtn.addEventListener("click", deleteInstance);
+
+      loadInstances();
+    })();
+
+    (function setupMerchantSitesCard() {
+      const tbody = document.getElementById("merchantSitesBody");
+      const meta = document.getElementById("merchantSitesMeta");
+      const csvBtn = document.getElementById("merchantSitesCsvBtn");
+      const tagFilterMenu = document.getElementById("merchantSitesTagFilter");
+      const tagToggle = document.getElementById("merchantSitesTagToggle");
+      const sortButtons = document.querySelectorAll(
+        "#merchantSitesCard [data-sort-role][data-column]"
+      );
+      if (!tbody || !meta || !csvBtn || !tagFilterMenu || !tagToggle) return;
+
+      let sortState = {
+        primary: { column: "tier", direction: "asc" },
+        secondary: { column: "name", direction: "asc" },
+      };
+      const statusOrder = { up: 0, limited: 1, unknown: 2, down: 3 };
+      const apiBase =
+        window.location.origin.includes("8787")
+          ? window.location.origin
+          : "http://localhost:8787";
+
+      async function loadCachedSites() {
+        try {
+          const res = await fetch("./merchant-sites-cache.json", { cache: "no-store" });
+          if (!res.ok) return null;
+          const data = await res.json();
+          return Array.isArray(data?.sites) ? data.sites : null;
+        } catch {
+          return null;
+        }
+      }
+
+      const classifyStatus = (tags = []) => {
+        const lower = tags.map((t) => t.toString().toLowerCase());
+        if (lower.some((t) => t.includes("down") || t.includes("disabled"))) {
+          return { label: "Down", css: "down" };
+        }
+        if (lower.some((t) => t.includes("limited") || t.includes("beta") || t.includes("degraded"))) {
+          return { label: "Limited", css: "limited" };
+        }
+        if (lower.some((t) => t.includes("unrestricted") || t === "prod")) {
+          return { label: "Up", css: "up" };
+        }
+        return { label: "Unknown", css: "unknown" };
+      };
+
+      let lastSites = [];
+      let filteredSites = [];
+
+      function updateTagOptions(sites = []) {
+        const existingSelection = new Set(
+          Array.from(tagFilterMenu.querySelectorAll("input[type=checkbox]:checked")).map(
+            (c) => c.value
+          )
+        );
+        const tagSet = new Set();
+        for (const site of sites) {
+          for (const t of Array.isArray(site.tags) ? site.tags : []) {
+            if (t) tagSet.add(t);
+          }
+        }
+        const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+        const allChecked =
+          tags.length > 0 && tags.every((t) => existingSelection.has(t));
+        const noneChecked = tags.length > 0 && tags.every((t) => !existingSelection.has(t));
+        const header = `
+          <div style="display:flex;gap:8px;padding:4px 0 8px 0;border-bottom:1px solid var(--panel-border);margin-bottom:6px;">
+            <button type="button" id="tagCheckAll" class="btn secondary" style="padding:6px 10px;min-width:100px;">Check all</button>
+            <button type="button" id="tagUncheckAll" class="btn secondary" style="padding:6px 10px;min-width:100px;">Uncheck all</button>
+          </div>
+        `;
+        const options = tags
+          .map(
+            (t) => `
+              <label>
+                <input type="checkbox" value="${t}" ${existingSelection.has(t) ? "checked" : ""}/>
+                <span>${t}</span>
+              </label>
+            `
+          )
+          .join("");
+        tagFilterMenu.innerHTML = header + options;
+        // wire up check/uncheck all
+        const checkAllBtn = document.getElementById("tagCheckAll");
+        const uncheckAllBtn = document.getElementById("tagUncheckAll");
+        if (checkAllBtn) {
+          checkAllBtn.onclick = () => {
+            tagFilterMenu.querySelectorAll("input[type=checkbox]").forEach((c) => {
+              c.checked = true;
+            });
+            render(lastSites);
+          };
+        }
+        if (uncheckAllBtn) {
+          uncheckAllBtn.onclick = () => {
+            tagFilterMenu.querySelectorAll("input[type=checkbox]").forEach((c) => {
+              c.checked = false;
+            });
+            render(lastSites);
+          };
+        }
+      }
+
+      const render = (sites = []) => {
+        lastSites = Array.isArray(sites) ? sites : [];
+        csvBtn.disabled = !lastSites.length;
+        if (!sites.length) {
+          tbody.innerHTML = `<tr><td colspan="5">No merchant sites returned.</td></tr>`;
+          meta.textContent = "No sites found.";
+          return;
+        }
+
+        const selectedTags = Array.from(
+          tagFilterMenu.querySelectorAll("input[type=checkbox]:checked")
+        ).map((c) => c.value);
+        const hasTagFilter = selectedTags.length > 0;
+        const filtered = hasTagFilter
+          ? sites.filter((s) => {
+              const tgs = Array.isArray(s.tags) ? s.tags : [];
+              return selectedTags.every((t) => tgs.includes(t));
+            })
+          : sites;
+        filteredSites = filtered;
+
+        const compare = (col, dir, a, b) => {
+          const direction = dir === "desc" ? -1 : 1;
+          switch (col) {
+            case "name":
+              return direction * (a.name || "").localeCompare(b.name || "");
+            case "host":
+              return direction * (a.host || "").localeCompare(b.host || "");
+            case "tier":
+              return direction * ((Number(a.tier) || 0) - (Number(b.tier) || 0));
+            case "tags": {
+              const aTags = Array.isArray(a.tags) ? a.tags.join(", ") : "";
+              const bTags = Array.isArray(b.tags) ? b.tags.join(", ") : "";
+              return direction * aTags.localeCompare(bTags);
+            }
+            case "status":
+            default: {
+              const aStatus = classifyStatus(a.tags).css;
+              const bStatus = classifyStatus(b.tags).css;
+              if (aStatus !== bStatus) {
+                return direction * ((statusOrder[aStatus] ?? 99) - (statusOrder[bStatus] ?? 99));
+              }
+              // Leave tie-breaking to the secondary sort (avoid host fallback here)
+              return 0;
+            }
+          }
+        };
+
+        const sorted = [...filtered].sort((a, b) => {
+          const primaryResult = compare(
+            sortState.primary.column,
+            sortState.primary.direction,
+            a,
+            b
+          );
+          if (primaryResult !== 0) return primaryResult;
+          return compare(sortState.secondary.column, sortState.secondary.direction, a, b);
+        });
+
+        tbody.innerHTML = sorted
+          .map((site) => {
+            const status = classifyStatus(site.tags);
+            const tags = Array.isArray(site.tags) ? site.tags.join(", ") : "";
+            const tier = site.tier === null || site.tier === undefined ? "—" : site.tier;
+            return `
+              <tr>
+                <td>${site.name || "—"}</td>
+                <td><code>${site.host || "—"}</code></td>
+                <td><span class="status-pill ${status.css}">${status.label}</span></td>
+                <td>${tags || "—"}</td>
+                <td>${tier}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        const filteredLabel = hasTagFilter
+          ? `Filtered to ${filtered.length} site(s); ${sites.length} total.`
+          : `Showing ${sites.length} site(s).`;
+        meta.textContent = `${filteredLabel} Status is derived from tags (down/disabled, limited/beta, unrestricted/prod).`;
+        updateSortButtons();
+      };
+
+      async function loadSites() {
+        meta.textContent = "Loading merchant sites…";
+        tbody.innerHTML = `<tr><td colspan="5">Loading…</td></tr>`;
+        try {
+          const res = await fetch(`${apiBase}/merchant-sites`, { cache: "no-store" });
+          const text = await res.text();
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`);
+          }
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (parseErr) {
+            throw new Error("Non-JSON response (is the SIS server running?): " + text.slice(0, 120));
+          }
+          const sites = Array.isArray(data?.sites) ? data.sites : [];
+          updateTagOptions(sites);
+          render(sites);
+        } catch (err) {
+          console.error("merchant sites load failed", err);
+          const cached = await loadCachedSites();
+          if (cached) {
+            meta.textContent = "Live fetch failed; showing cached merchant site list.";
+            updateTagOptions(cached);
+            render(cached);
+            return;
+          }
+          meta.textContent = err?.message || "Failed to load merchant sites. Is the SIS server running on port 8787?";
+          tbody.innerHTML = `<tr><td colspan="5">Failed to load merchant sites.</td></tr>`;
+        }
+      }
+
+      function setPrimary(column) {
+        const normalized = column || "status";
+        if (sortState.primary.column === normalized) {
+          sortState = {
+            primary: {
+              column: normalized,
+              direction: sortState.primary.direction === "asc" ? "desc" : "asc",
+            },
+            secondary: sortState.secondary,
+          };
+          return;
+        }
+        if (sortState.secondary.column === normalized) {
+          // Swap roles, keep directions
+          sortState = {
+            primary: { ...sortState.secondary },
+            secondary: { ...sortState.primary },
+          };
+          return;
+        }
+        sortState = {
+          primary: { column: normalized, direction: "asc" },
+          secondary: { ...sortState.primary },
+        };
+      }
+
+      function setSecondary(column) {
+        const normalized = column || "status";
+        if (sortState.secondary.column === normalized) {
+          sortState = {
+            primary: sortState.primary,
+            secondary: {
+              column: normalized,
+              direction: sortState.secondary.direction === "asc" ? "desc" : "asc",
+            },
+          };
+          return;
+        }
+        if (sortState.primary.column === normalized) {
+          // Swap roles, keep directions
+          sortState = {
+            primary: { ...sortState.secondary },
+            secondary: { ...sortState.primary },
+          };
+          return;
+        }
+        sortState = {
+          primary: sortState.primary,
+          secondary: { column: normalized, direction: "asc" },
+        };
+      }
+
+      const headers = document.querySelectorAll("#merchantSitesCard thead th");
+      const headerMap = {};
+      headers.forEach((th) => {
+        const col = th.dataset.column;
+        if (col) headerMap[col] = th;
+      });
+      headers.forEach((th) => {
+        th.addEventListener("click", (evt) => {
+          // Avoid double-handling when clicking the buttons
+          if (evt.target.closest(".sort-segment")) return;
+          const col = th.dataset.column;
+          if (!col) return;
+          setPrimary(col);
+          render(lastSites);
+        });
+      });
+      const dirLabel = (dir) => (dir === "desc" ? "▼" : "▲");
+      function updateSortButtons() {
+        sortButtons.forEach((btn) => {
+          const role = btn.dataset.sortRole;
+          const col = btn.dataset.column;
+          const isPrimary = role === "primary";
+          const active =
+            (isPrimary && sortState.primary.column === col) ||
+            (!isPrimary && sortState.secondary.column === col);
+          btn.classList.toggle("active", active);
+          const dir =
+            isPrimary && sortState.primary.column === col
+              ? sortState.primary.direction
+              : !isPrimary && sortState.secondary.column === col
+              ? sortState.secondary.direction
+              : null;
+          btn.textContent = dir ? dirLabel(dir) : "↕";
+          btn.setAttribute("aria-pressed", active ? "true" : "false");
+          btn.setAttribute(
+            "aria-label",
+            active
+              ? `${role === "primary" ? "Primary" : "Secondary"} sort ${
+                  dir === "asc" ? "ascending" : "descending"
+                } by ${col}`
+              : `Set ${role === "primary" ? "primary" : "secondary"} sort to ${col}`
+          );
+        });
+      }
+      sortButtons.forEach((btn) => {
+        btn.addEventListener("click", (evt) => {
+          evt.stopPropagation();
+          const role = btn.dataset.sortRole;
+          const col = btn.dataset.column;
+          if (!role || !col) return;
+          if (role === "primary") {
+            setPrimary(col);
+          } else {
+            setSecondary(col);
+          }
+          render(lastSites);
+        });
+      });
+      document.addEventListener("click", (evt) => {
+        if (evt.target === tagToggle) {
+          tagFilterMenu.hidden = !tagFilterMenu.hidden;
+          return;
+        }
+        if (!tagFilterMenu.hidden) {
+          const within = tagFilterMenu.contains(evt.target);
+          if (!within) tagFilterMenu.hidden = true;
+        }
+      });
+      tagFilterMenu.addEventListener("change", () => {
+        render(lastSites);
+      });
+      updateSortButtons();
+
+      function escapeCsv(value) {
+        const str = value == null ? "" : String(value);
+        return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+      }
+
+      function buildCsv() {
+        const rows = [["Name", "Host", "Status", "Tags", "Tier"]];
+        for (const site of filteredSites) {
+          const status = classifyStatus(site.tags);
+          const tags = Array.isArray(site.tags) ? site.tags.join("|") : "";
+          rows.push([
+            escapeCsv(site.name || ""),
+            escapeCsv(site.host || ""),
+            escapeCsv(status.label),
+            escapeCsv(tags),
+            escapeCsv(site.tier ?? ""),
+          ]);
+        }
+        return rows.map((r) => r.join(",")).join("\n");
+      }
+
+      csvBtn.addEventListener("click", () => {
+        if (!lastSites.length) return;
+        const csv = buildCsv();
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "merchant-sites-ss01.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      loadSites();
+    })();
+  </script>
+</body>
+</html>

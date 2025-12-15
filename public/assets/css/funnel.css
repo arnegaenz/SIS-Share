@@ -1,0 +1,85 @@
+.funnel-dist-card { position: relative; }
+.funnel-dist-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.funnel-dist-toggle {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--table-border);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.funnel-dist-toggle:hover {
+  border-color: var(--accent);
+}
+.funnel-dist-toggle:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+.funnel-dist-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+.funnel-dist-row { display:flex; gap:16px; margin-top:6px; }
+.funnel-dist-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--table-border);
+  color: var(--text);
+  min-width: 118px;
+  justify-content: space-between;
+}
+.funnel-dist-chip b { opacity:.8; font-size:.85em; letter-spacing:.03em; }
+.funnel-dist-panel {
+  position: absolute;
+  right: 0;
+  top: var(--sis-dist-top, 44px);
+  width: 420px;
+  max-width: min(90vw, 520px);
+  margin-top: 0;
+  border: 1px solid var(--table-border);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  max-height: 40vh;
+  overflow: auto;
+  display: none;
+  z-index: 60;
+}
+.funnel-dist-panel.open { display:block; }
+.funnel-dist-card #distribution-wrap:not([hidden]) {
+  border-color: var(--accent);
+}
+.funnel-dist-table { width:100%; border-collapse:collapse; }
+.funnel-dist-table th, .funnel-dist-table td { padding:10px 12px; border-bottom:1px solid var(--table-border); text-align:left; }
+.funnel-dist-empty { padding:12px; opacity:.7; }
+
+.ui-chip,
+.metric-chip {
+  border-radius: 9999px;
+  border: 1px solid var(--table-border, rgba(255,255,255,0.10));
+  box-shadow: inset 0 0 0 1px var(--grid-divider, rgba(255,255,255,0.06));
+  padding: 6px 10px;
+  line-height: 1;
+}
+.funnel-dist-card .funnel-dist-chip.ui-chip {
+  border-radius: 6px;
+}
+.chips-row { gap: 8px; margin-bottom: 8px; }
+#toggle-distribution[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+#distribution-wrap {
+  max-height: 420px;
+  overflow: auto;
+  display: block;
+}
+#distribution-wrap[hidden] { display: none !important; }
