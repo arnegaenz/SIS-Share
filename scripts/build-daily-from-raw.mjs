@@ -304,6 +304,7 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
         sessions_with_success: 0,
         total_jobs_sum: 0,
         successful_jobs_sum: 0,
+        job_distribution: {},
       };
     }
     const bucket = byInstance[key];
@@ -315,6 +316,9 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
     if (successfulJobs > 0) bucket.sessions_with_success += 1;
     bucket.total_jobs_sum += totalJobs;
     bucket.successful_jobs_sum += successfulJobs;
+
+    // Track job distribution
+    bucket.job_distribution[totalJobs] = (bucket.job_distribution[totalJobs] || 0) + 1;
   }
 
   const byFi = {};
@@ -328,6 +332,7 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
         sessions_with_success: 0,
         total_jobs_sum: 0,
         successful_jobs_sum: 0,
+        job_distribution: {},
       };
     }
     const fiBucket = byFi[fiKey];
@@ -336,6 +341,11 @@ function aggregateSessionsFromRaw(raw, registryIndex) {
     fiBucket.sessions_with_success += entry.sessions_with_success;
     fiBucket.total_jobs_sum += entry.total_jobs_sum || 0;
     fiBucket.successful_jobs_sum += entry.successful_jobs_sum || 0;
+
+    // Merge job distribution
+    for (const [jobCount, sessionCount] of Object.entries(entry.job_distribution || {})) {
+      fiBucket.job_distribution[jobCount] = (fiBucket.job_distribution[jobCount] || 0) + sessionCount;
+    }
   }
 
   return { byFi, byInstance };

@@ -1,1 +1,53 @@
-{}
+{
+  "admin__msu": {
+    "fi_name": "Admin",
+    "fi_lookup_key": "admin",
+    "instance": "msu",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown",
+    "sources": [
+      "api"
+    ],
+    "first_seen": "2025-12-15"
+  },
+  "default__msu": {
+    "fi_name": "Default",
+    "fi_lookup_key": "default",
+    "instance": "msu",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown",
+    "sources": [
+      "api"
+    ],
+    "first_seen": "2025-12-15"
+  },
+  "msufcu__msu": {
+    "fi_name": "MSUFCU",
+    "fi_lookup_key": "msufcu",
+    "instance": "msu",
+    "integration_type": "sso",
+    "partner": "Unknown",
+    "sources": [
+      "api"
+    ],
+    "first_seen": "2025-12-15",
+    "cardholder_total": null,
+    "cardholder_source": null,
+    "cardholder_as_of": null,
+    "core_vendor": null,
+    "core_product": null,
+    "debit_processor": null,
+    "credit_processor": null
+  },
+  "draft__msu": {
+    "fi_name": "MSUFCU",
+    "fi_lookup_key": "draft",
+    "instance": "msu",
+    "integration_type": "NON-SSO",
+    "partner": "Unknown",
+    "sources": [
+      "api"
+    ],
+    "first_seen": "2025-12-15"
+  }
+}

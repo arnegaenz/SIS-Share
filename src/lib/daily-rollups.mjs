@@ -126,6 +126,7 @@ export function buildDailyDocument({
       total_sessions: 0,
       sessions_with_jobs: 0,
       sessions_with_success: 0,
+      job_distribution: {},
     };
     const p = placementsByFi[key] || {
       total_placements: 0,
@@ -166,6 +167,7 @@ export function buildDailyDocument({
         without_jobs,
         total_jobs: s.total_jobs_sum || 0,
         successful_jobs: s.successful_jobs_sum || 0,
+        job_distribution: s.job_distribution || {},
       },
       placements: p,
     };
@@ -203,6 +205,7 @@ export function buildDailyDocument({
       total_sessions: 0,
       sessions_with_jobs: 0,
       sessions_with_success: 0,
+      job_distribution: {},
     };
     const p = placementEntry || {
       total_placements: 0,
@@ -234,6 +237,7 @@ export function buildDailyDocument({
         without_jobs,
         total_jobs: s.total_jobs_sum || 0,
         successful_jobs: s.successful_jobs_sum || 0,
+        job_distribution: s.job_distribution || {},
       },
       placements: {
         total_placements: p.total_placements || 0,
