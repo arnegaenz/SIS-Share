@@ -492,6 +492,9 @@ async function writeInstancesFile(entries) {
       // missing, keep searching
     }
   }
+  // Ensure the directory exists before writing
+  const dir = path.dirname(target);
+  await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(target, JSON.stringify(sorted, null, 2) + "\n", "utf8");
   return { entries: sorted, path: target };
 }
