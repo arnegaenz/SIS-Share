@@ -2266,6 +2266,8 @@
         if (!testBtn || !testPanel) return;
         try {
           testPanel.hidden = false;
+          setTestStatus("");
+          setTestLog("");
           setTestStatus("Testing GA credential…");
           setTestLog("Running GA read-only report (this may take a few seconds)…");
           const name = currentName();

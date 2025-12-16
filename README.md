@@ -88,7 +88,9 @@ You have two options for setting up credentials:
 
    See [secrets/README.md](secrets/README.md) for detailed instructions on creating GA service accounts.
 
-### 3. Configure Environment Variables (Optional)
+### 3. Configure Environment Variables (Required)
+
+**IMPORTANT**: You must create a `.env` file with your Google Analytics property ID.
 
 Copy the example environment file:
 
@@ -96,12 +98,14 @@ Copy the example environment file:
 cp .env.example .env
 ```
 
-Edit `.env` and set your GA property IDs:
+Edit `.env` and set your actual GA property IDs:
 
 ```
-GA_PROPERTY_ID=328054560
+GA_PROPERTY_ID=your-production-ga-property-id
 GA_TEST_PROPERTY_ID=your-test-property-id
 ```
+
+**Replace `your-production-ga-property-id` with your actual GA4 property ID** (e.g., `328054560`). This property ID is used when fetching data from Google Analytics during the data refresh process.
 
 ### 4. Start the Server
 
@@ -273,14 +277,16 @@ The dashboard will aggregate data from all configured instances.
 - If not, go to Maintenance page and manually refresh data
 - Check that your credentials are valid by testing them in the Maintenance page
 
-### GA Authentication Errors
+### GA Authentication Errors or Wrong Property ID
 
-**Error**: `Error: 7 PERMISSION_DENIED`
+**Error**: `Error: 7 PERMISSION_DENIED` or data fetching from wrong GA property
 
 **Solution**:
-1. Ensure the service account email is added to your GA4 property with Viewer access
-2. Verify GA_PROPERTY_ID in `.env` matches your actual property ID
-3. Check that the service account JSON file is valid
+1. **Create a `.env` file** if you haven't already (see step 3 in Quick Start)
+2. Ensure the service account email is added to your GA4 property with Viewer access
+3. **Verify GA_PROPERTY_ID in `.env` matches your actual property ID** - this is the most common issue
+4. Check that the service account JSON file is valid
+5. Note: The property ID field on the maintenance page is only used for testing credentials, not for data refresh. The data refresh uses the property ID from your `.env` file.
 
 ### Instance Connection Fails
 
