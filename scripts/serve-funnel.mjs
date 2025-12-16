@@ -44,7 +44,7 @@ const GA_CREDENTIALS = [
     label: "Production",
     file: path.join(ROOT, "secrets", "ga-service-account.json"),
     envProperty: "GA_PROPERTY_ID",
-    defaultProperty: "328054560",
+    defaultProperty: process.env.GA_PROPERTY_ID || "",
   },
   {
     name: "test",
@@ -2461,7 +2461,10 @@ const server = http.createServer(async (req, res) => {
         payload?.date && /^\d{4}-\d{2}-\d{2}$/.test(payload.date)
           ? payload.date
           : yesterdayIsoDate();
-      const propertyId = (payload?.propertyId || process.env.GA_PROPERTY_ID || "328054560").toString();
+      const propertyId = (payload?.propertyId || process.env.GA_PROPERTY_ID || "").toString();
+      if (!propertyId) {
+        return send(res, 400, { ok: false, error: "GA_PROPERTY_ID is required. Please set it in your .env file." });
+      }
 
       const summary = await readGaCredentialSummary("prod");
       if (!summary.exists) {
@@ -2544,7 +2547,10 @@ const server = http.createServer(async (req, res) => {
           ? payload.date
           : yesterdayIsoDate();
       const envPropertyId = process.env[cfg.envProperty] || "";
-      const propertyId = (payload?.propertyId || envPropertyId || cfg.defaultProperty || "328054560").toString();
+      const propertyId = (payload?.propertyId || envPropertyId || cfg.defaultProperty || "").toString();
+      if (!propertyId) {
+        return send(res, 400, { ok: false, error: `${cfg.envProperty} is required. Please set it in your .env file or provide it in the request.` });
+      }
 
       const rows = await fetchGaRowsForDay({
         date,
