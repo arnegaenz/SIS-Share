@@ -1007,6 +1007,10 @@
               </select>
             </label>
             <label>
+              GA Production Property ID
+              <input type="text" id="gaPropertyId" placeholder="328054560" />
+            </label>
+            <label>
               Upload JSON file
               <input type="file" id="gaCredFile" accept="application/json,.json" />
             </label>
@@ -2033,6 +2037,7 @@
 
     (function setupGaCredentialsManager() {
       const select = document.getElementById("gaCredSelect");
+      const propertyIdInput = document.getElementById("gaPropertyId");
       const fileInput = document.getElementById("gaCredFile");
       const reloadBtn = document.getElementById("gaCredReloadBtn");
       const testBtn = document.getElementById("gaCredTestBtn");
@@ -2265,10 +2270,14 @@
           setTestLog("Running GA read-only report (this may take a few seconds)…");
           const name = currentName();
           if (!name) throw new Error("Select a credential (Production/Test) first.");
+          const propertyId = propertyIdInput?.value?.trim() || "";
+          if (!propertyId) throw new Error("GA Production Property ID is required.");
+          // Save property ID to localStorage for persistence
+          localStorage.setItem("gaPropertyId", propertyId);
           const res = await fetch(`${apiBase}/ga/credential/test`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name }),
+            body: JSON.stringify({ name, propertyId }),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
@@ -2288,6 +2297,14 @@
       saveBtn.addEventListener("click", saveCredential);
       deleteBtn.addEventListener("click", deleteCredential);
       fileInput.addEventListener("change", uploadFileIntoEditor);
+
+      // Load property ID from localStorage
+      if (propertyIdInput) {
+        const savedPropertyId = localStorage.getItem("gaPropertyId");
+        if (savedPropertyId) {
+          propertyIdInput.value = savedPropertyId;
+        }
+      }
 
       reloadAllSummary();
     })();
