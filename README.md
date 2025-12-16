@@ -88,9 +88,9 @@ You have two options for setting up credentials:
 
    See [secrets/README.md](secrets/README.md) for detailed instructions on creating GA service accounts.
 
-### 3. Configure Environment Variables (Required)
+### 3. Configure Environment Variables (Optional)
 
-**IMPORTANT**: You must create a `.env` file with your Google Analytics property ID.
+**If you use Google Analytics**, create a `.env` file with your GA property ID.
 
 Copy the example environment file:
 
@@ -106,6 +106,8 @@ GA_TEST_PROPERTY_ID=your-test-property-id
 ```
 
 **Replace `your-production-ga-property-id` with your actual GA4 property ID** (e.g., `328054560`). This property ID is used when fetching data from Google Analytics during the data refresh process.
+
+**Note:** If you don't configure GA credentials, the system will skip GA data fetching and only use CardSavr session and placement data.
 
 ### 4. Start the Server
 

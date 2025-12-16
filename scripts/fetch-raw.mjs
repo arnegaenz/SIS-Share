@@ -19,7 +19,7 @@ import {
 const SRC_DIR = path.resolve("src");
 const ROOT_DIR = path.resolve(".");
 const DAILY_FORMAT = /^\d{4}-\d{2}-\d{2}$/;
-const DEFAULT_GA_PROPERTY = process.env.GA_PROPERTY_ID;
+const DEFAULT_GA_PROPERTY = process.env.GA_PROPERTY_ID || null;
 const DEFAULT_GA_KEYFILE =
   process.env.GA_KEYFILE || process.env.GOOGLE_APPLICATION_CREDENTIALS || "./secrets/ga-service-account.json";
 const TEST_GA_PROPERTY = process.env.GA_TEST_PROPERTY_ID || null;
@@ -27,10 +27,6 @@ const TEST_GA_KEYFILE =
   process.env.GA_TEST_KEYFILE || "./secrets/ga-test.json";
 const REFRESH_WINDOW_DAYS = 7;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-if (!DEFAULT_GA_PROPERTY) {
-  throw new Error("GA_PROPERTY_ID is required. Please set it in your .env file.");
-}
 
 function todayUtc() {
   return new Date().toISOString().slice(0, 10);
@@ -264,8 +260,13 @@ async function fetchGaRaw(date) {
     configs.push({ propertyId: TEST_GA_PROPERTY, keyFile: TEST_GA_KEYFILE, isTest: true });
   }
 
-  // Filter out configs where the keyFile doesn't exist
+  // Filter out configs where propertyId is missing or keyFile doesn't exist
   const validConfigs = configs.filter(cfg => {
+    if (!cfg.propertyId) {
+      const label = cfg.isTest ? "GA (test)" : "GA (prod)";
+      console.log(`[${date}] ${label}: skipped (property ID not configured)`);
+      return false;
+    }
     const keyFilePath = path.resolve(cfg.keyFile);
     const exists = fs.existsSync(keyFilePath);
     if (!exists) {

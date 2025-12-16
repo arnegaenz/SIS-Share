@@ -1,12 +1,8 @@
 import { google } from "googleapis";
 
-const DEFAULT_PROPERTY_ID = process.env.GA_PROPERTY_ID;
+const DEFAULT_PROPERTY_ID = process.env.GA_PROPERTY_ID || null;
 const DEFAULT_KEY_FILE =
   process.env.GA_KEYFILE || "./secrets/ga-service-account.json";
-
-if (!DEFAULT_PROPERTY_ID) {
-  console.warn("⚠️  WARNING: GA_PROPERTY_ID not set in .env file. GA data fetching may fail.");
-}
 const UNKNOWN_INSTANCE = "unknown";
 
 const CARDUPDATR_SUFFIX = ".cardupdatr.app";
